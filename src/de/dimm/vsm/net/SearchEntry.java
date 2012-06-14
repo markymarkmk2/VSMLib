@@ -26,6 +26,8 @@ public class SearchEntry  implements Serializable
     public static final String ARG_UID = "uid";
     public static final String ARG_GID = "gid";
     public static final String ARG_TS = "ts";
+    public static final String ARG_IDX = "idx";
+    public static final String ARG_JOBIDX = "jobidx";
 
     public static final String OP_EQUAL = "eq";
     public static final String OP_BEGINS = "begins";
@@ -154,6 +156,14 @@ public class SearchEntry  implements Serializable
         {
             return "_F_.typ";
         }
+        if (getArgType().equals(ARG_IDX))
+        {
+            return "_F_.idx";
+        }
+        if (getArgType().equals(ARG_JOBIDX))
+        {
+            return "_J_.idx";
+        }
         if (getArgType().equals(ARG_TS))
         {
             return "_A_.ts";
@@ -203,6 +213,14 @@ public class SearchEntry  implements Serializable
         if (getArgType().equals(ARG_TYP))
         {
             return "typ";
+        }
+        if (getArgType().equals(ARG_IDX))
+        {
+            return "idx";
+        }
+        if (getArgType().equals(ARG_JOBIDX))
+        {
+            return "idx";
         }
         if (getArgType().equals(ARG_TS))
         {

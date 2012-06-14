@@ -71,7 +71,7 @@ public class User implements Serializable
         User user = new User("system", "system");
         Role role = new Role();
         ArrayLazyList<RoleOption> rolist = new ArrayLazyList<RoleOption>();
-        rolist.add(new RoleOption(0, role, RoleOption.RL_ADMIN, 0));
+        rolist.add(new RoleOption(0, role, RoleOption.RL_ADMIN, 0, ""));
         role.setRoleOptions(rolist);
         user.setRole(role);
         return user;
