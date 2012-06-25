@@ -19,16 +19,18 @@ import java.util.List;
 public class User implements Serializable
 {
     String userName;
+    String loginName;
     String niceName;
     List<String> groups;
     
     boolean ignoreAcl;
     Role role;
 
-    public User( String userName, String niceName )
+    public User( String userName, String loginName, String niceName )
     {
         this.userName = userName;
-        this.niceName = niceName;        
+        this.niceName = niceName;
+        this.loginName = loginName;
         
         groups = new ArrayList<String>();
     }
@@ -60,6 +62,12 @@ public class User implements Serializable
         return getNiceName();
     }
 
+    public String getLoginName()
+    {
+        return loginName;
+    }
+    
+
 
     public boolean isAdmin()
     {
@@ -68,7 +76,7 @@ public class User implements Serializable
 
     public static User createSystemInternal()
     {
-        User user = new User("system", "system");
+        User user = new User("system", "system", "system");
         Role role = new Role();
         ArrayLazyList<RoleOption> rolist = new ArrayLazyList<RoleOption>();
         rolist.add(new RoleOption(0, role, RoleOption.RL_ADMIN, 0, ""));

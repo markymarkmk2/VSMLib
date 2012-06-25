@@ -10,6 +10,7 @@ import de.dimm.vsm.records.Role;
 import java.net.Socket;
 
 import java.util.Properties;
+import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.Store;
 
@@ -68,7 +69,7 @@ public class IMAPAuth extends GenericRealmAuth
         catch (Exception exc)
         {
             error_txt = exc.getMessage();
-            exc.printStackTrace();
+            
         }
         return ret;
     }
@@ -77,8 +78,6 @@ public class IMAPAuth extends GenericRealmAuth
     {
         try
         {
-            if (store != null)
-                store.close();
             return true;
         }
         catch (Exception exc)
@@ -87,7 +86,6 @@ public class IMAPAuth extends GenericRealmAuth
         }
         return false;
     }
-
 
 
     @Override
@@ -103,9 +101,7 @@ public class IMAPAuth extends GenericRealmAuth
         user_context = open_user(user_principal, pwd);
         return user_context == null ? false : true;
     }
-
     
-
 
     IMAPUserContext open_user( String user_principal, String pwd )
     {
@@ -141,28 +137,33 @@ public class IMAPAuth extends GenericRealmAuth
 
     void close_user( IMAPUserContext uctx )
     {
-       
-    }
-
-    public static void main( String[] args)
-    {
-        IMAPAuth auth = new IMAPAuth("192.168.1.120", 143, 0);
-
-        if (auth.connect())
+        try
         {
-            if (auth.open_user_context("EXJournal", "12345"))
+            if (store != null)
             {
-                System.out.println("Feini");
-                auth.close_user_context();
+                store.close();
+                store = null;
             }
-            auth.disconnect();
+        }
+        catch (MessagingException messagingException)
+        {
         }
     }
 
+
+
     @Override
-    public User createUser( Role role )
+    public User createUser( Role role, String loginName  )
     {
-        throw new UnsupportedOperationException("Not supported yet.");
+        if (store == null)
+            return null;
+
+
+        User user = new User(loginName, loginName, loginName);
+        user.setRole(role);
+
+        return user;
+        
     }
 
     @Override

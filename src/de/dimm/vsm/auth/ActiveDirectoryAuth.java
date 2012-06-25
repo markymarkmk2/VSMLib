@@ -194,13 +194,15 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
         return list_attribute_qry("(&(objectClass=group)(name=*))", "name");
     }
     @Override
-    public ArrayList<String> list_groups(String userName) throws NamingException
+    public ArrayList<String> list_groups(User user) throws NamingException
     {
         String group = "group";
         if (groupIdentifier != null && !groupIdentifier.isEmpty())
             group = groupIdentifier;
 
-        return list_attribute_qry( "(&(member=" + userName + ")(objectClass=" + group + "))", "name");
+        // AD NEEDS DN == getUSERNAME
+        String qry =  "(&(member=" + user.getUserName() + ")(objectClass=" + group + "))";
+        return list_attribute_qry( qry, "name");
     }
 
     @Override
@@ -530,13 +532,13 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
     }
 
     @Override
-    public User createUser( Role role )
+    public User createUser( Role role, String loginname )
     {
         if (user_context == null)
             return null;
 
 
-        User user = new User(user_context.dn, user_context.niceName);
+        User user = new User(user_context.dn, loginname, user_context.niceName);
         user.setRole(role);
 
         return user;
@@ -645,9 +647,9 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
 
 
 
-            User user = new User(user_dn, niceName);
+            User user = new User(user_dn, user_principal, niceName);
 
-            ArrayList<String>groups = list_groups(user_principal);
+            ArrayList<String>groups = list_groups(user);
 
             user.setGroups(groups);
 

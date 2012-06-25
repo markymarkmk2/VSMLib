@@ -39,6 +39,8 @@ public class AttributeList implements Serializable
         for (int i = 0; i < list.size(); i++)
         {
             AttributeEntry attributeEntry = list.get(i);
+            if (sb.length() > 0)
+                sb.append("\n");
             sb.append(attributeEntry.toString());
         }
         return sb.toString();

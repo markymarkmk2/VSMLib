@@ -307,13 +307,13 @@ public class LDAPAuth extends GenericRealmAuth
     }
 
     @Override
-    public ArrayList<String> list_groups(String userName) throws NamingException
+    public ArrayList<String> list_groups(User user) throws NamingException
     {
         String group = "group";
         if (groupIdentifier != null && !groupIdentifier.isEmpty())
             group = groupIdentifier;
 
-        return list_dn_qry("cn", "(memberUid=" + userName + ")(objectClass=" + group + ")");
+        return list_dn_qry("cn", "(memberUid=" + user.getLoginName() + ")(objectClass=" + group + ")");
     }
     @Override
     public ArrayList<String> list_groups(/*String userName*/) throws NamingException
@@ -761,13 +761,13 @@ public class LDAPAuth extends GenericRealmAuth
     }
 
     @Override
-    public User createUser( Role role )
+    public User createUser( Role role, String loginName )
     {
         if (user_context == null)
             return null;
 
 
-        User user = new User(user_context.dn, user_context.niceName);
+        User user = new User(user_context.dn, loginName, user_context.niceName);
         user.setRole(role);
 
         return user;
@@ -844,9 +844,9 @@ public class LDAPAuth extends GenericRealmAuth
                 niceName = cn_adn.get().toString();
 
 
-            User user = new User(dn, niceName);
+            User user = new User(dn, user_name, niceName);
 
-            ArrayList<String>groups = list_groups(user_name);
+            ArrayList<String>groups = list_groups(user);
 
             user.setGroups(groups);
 

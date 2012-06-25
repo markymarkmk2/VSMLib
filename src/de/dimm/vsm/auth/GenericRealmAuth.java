@@ -38,6 +38,9 @@ public abstract class GenericRealmAuth
     public static final int CONN_MODE_TLS = 0x0003;
     public static final int CONN_MODE_SSL = 0x0004;
 
+    public static final int FL_MASK = 0xfff0;
+    public static final int FL_ALLOW_EMPTY_PWD = 0x0010;
+
     private final String DEFAULT_SSL_FACTORY = "home.shared.Utilities.DefaultSSLSocketFactory";
     private final String SSL_FACTORY = "javax.net.ssl.SSLSocketFactory";
 
@@ -110,7 +113,7 @@ public abstract class GenericRealmAuth
     {
         return new ArrayList<String>();
     }
-    public ArrayList<String> list_groups(String user) throws NamingException
+    public ArrayList<String> list_groups(User user) throws NamingException
     {
         return new ArrayList<String>();
     }
@@ -305,7 +308,7 @@ public abstract class GenericRealmAuth
         this.act = act;
     }
 
-    public abstract User createUser( Role role );
+    public abstract User createUser( Role role, String loginName );
     public abstract User load_user( String user_name );
 
 }

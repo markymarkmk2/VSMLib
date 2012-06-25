@@ -33,7 +33,14 @@ public class AttributeEntry implements Serializable
     {
         return data;
     }
-    
+
+    @Override
+    public String toString()
+    {
+        return name + ": " + data.length;
+    }
+
+
 
     
 

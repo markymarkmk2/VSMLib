@@ -166,7 +166,7 @@ public class POP3Auth extends GenericRealmAuth
     }
 
     @Override
-    public User createUser( Role role )
+    public User createUser( Role role, String loginName  )
     {
         throw new UnsupportedOperationException("Not supported yet.");
     }
