@@ -38,6 +38,8 @@ public interface AgentApi
     public static final int FL_RDWR = 1;
     public static final int FL_TRUNC = 2;
     public static final int FL_CREATE = 4;
+
+    public static final String OP_FORCE_RSRC = "OP_FORCE_RSRC";
     
     ArrayList<RemoteFSElem> list_dir( RemoteFSElem dir, boolean lazyAclInfo );
     String readAclInfo( RemoteFSElem dir );
