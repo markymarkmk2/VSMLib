@@ -31,5 +31,5 @@ public class HashDataResult implements Serializable
     {
         return hashValue;
     }
-
+  
 }
