@@ -39,6 +39,8 @@ class HessianSocketConnection extends AbstractHessianConnection
     private String _statusMessage;
     int bsize = 32*1024;
 
+
+
     HashMap<String,String> headerMap;
     HessianSocketConnection(URL url, Socket conn)
     {
@@ -150,10 +152,12 @@ class HessianSocketConnectionFactory extends AbstractHessianConnectionFactory
       int maxConnections = 10;
       int maxConnectionsPerHost = 10;
       SocketOwner socketOwner;
+      int timeout;
 
-    public HessianSocketConnectionFactory(SocketOwner owner)
+    public HessianSocketConnectionFactory(SocketOwner owner, int timeout)
     {
         this.socketOwner = owner;
+        this.timeout = timeout;
     }
 
 
@@ -167,7 +171,7 @@ class HessianSocketConnectionFactory extends AbstractHessianConnectionFactory
         if (!sock.isConnected() || sock.isClosed())
         {
             sock.close();
-            sock = new HessianNoCloseSocket();
+            sock = new HessianNoCloseSocket(timeout);
             sock.setTcpNoDelay(true);
             sock.setSendBufferSize(512*1024);
             sock.setReceiveBufferSize(512*1024);
@@ -199,6 +203,7 @@ public class RemoteCallFactory implements SocketOwner
      String context;
      boolean tcp;
      HessianNoCloseSocket sock;
+     int timeout = 2000;
 
     public RemoteCallFactory( InetAddress adress, int port, String context, boolean ssl, boolean tcp ) throws MalformedURLException
     {
@@ -237,13 +242,20 @@ public class RemoteCallFactory implements SocketOwner
         });
 
     }
+
+    public void setConnectTimeout( int timeout )
+    {
+        this.timeout = timeout;
+    }
+
+
     public void resetSocket() throws IOException
     {
         if (sock != null)
         {
             sock.realClose();
-            sock = new HessianNoCloseSocket();
-            hfactory.setConnectionFactory( new HessianSocketConnectionFactory(this));
+            sock = new HessianNoCloseSocket(timeout);
+            hfactory.setConnectionFactory( new HessianSocketConnectionFactory(this, timeout));
             sock.connect(new InetSocketAddress(adress, port));
         }
     }
@@ -277,8 +289,8 @@ public class RemoteCallFactory implements SocketOwner
     {        
         if (tcp)
         {
-            sock = new HessianNoCloseSocket();
-            hfactory.setConnectionFactory( new HessianSocketConnectionFactory(this));
+            sock = new HessianNoCloseSocket(timeout);
+            hfactory.setConnectionFactory( new HessianSocketConnectionFactory(this, timeout));
         }
         
         try
