@@ -25,13 +25,15 @@ public class LogQuery
     String qry;
     Date olderThan;
     int userId;
+    int maxLen;
 
-    public LogQuery( int levelFlags, String qry, Date olderThan )
+    public LogQuery( int levelFlags, String qry, Date olderThan, int maxLen )
     {
         this.levelFlags = levelFlags;
         this.qry = qry;
         this.olderThan = olderThan;
         userId = MessageLog.UID_SYSTEM;
+        this.maxLen = maxLen;
     }
 
     public int getLevelFlags()
@@ -68,6 +70,9 @@ public class LogQuery
             if (levelFlags != lq.levelFlags)
                 return false;
 
+            if (maxLen != lq.maxLen)
+                return false;
+
             if (olderThan == null && lq.olderThan != null)
                 return false;
             if (olderThan != null && lq.olderThan == null)
@@ -99,6 +104,12 @@ public class LogQuery
         return hash;
     }
 
+    public int getMaxLen()
+    {
+        return maxLen;
+    }
+
+    
     
     
 }
