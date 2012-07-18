@@ -5,7 +5,7 @@
 package de.dimm.vsm.auth;
 
 import com.sun.mail.pop3.POP3Store;
-import de.dimm.vsm.Utilities.Lang;
+import de.dimm.vsm.Utilities.DefaultTextProvider;
 import de.dimm.vsm.log.LogManager;
 import de.dimm.vsm.records.Role;
 import java.net.Socket;
@@ -136,7 +136,7 @@ public class POP3Auth extends GenericRealmAuth
         catch (AuthenticationFailedException exc)
         {
             LogManager.msg_auth( LogManager.LVL_ERR, "SMTP auth failed", exc);
-            error_txt = Lang.Txt("Authentication_failed");
+            error_txt = DefaultTextProvider.Txt("Authentication_failed");
         }
         catch (MessagingException messagingException)
         {

@@ -4,7 +4,7 @@
  */
 package de.dimm.vsm.auth;
 
-import de.dimm.vsm.Utilities.Lang;
+import de.dimm.vsm.Utilities.DefaultTextProvider;
 import de.dimm.vsm.log.LogManager;
 import de.dimm.vsm.records.Role;
 import java.util.ArrayList;
@@ -351,7 +351,7 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
         }
         catch (NamingException namingException)
         {
-            error_txt = Lang.Txt("Fehler beim Ermitteln der searchBase") + ": " + namingException.toString(true);
+            error_txt = DefaultTextProvider.Txt("Fehler beim Ermitteln der searchBase") + ": " + namingException.toString(true);
             return null;
         }
         
@@ -375,7 +375,7 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
         
         if (sr == null)
         {
-            error_txt = Lang.Txt("User_konnte_nicht_im_AD_gefunden_werden") + ": " + user_principal;
+            error_txt = DefaultTextProvider.Txt("User_konnte_nicht_im_AD_gefunden_werden") + ": " + user_principal;
             return null;
         }
 
@@ -622,7 +622,7 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
             if (namingException instanceof javax.naming.NameNotFoundException)
             {
                 String searchFilter = "(&(objectCategory=person)(objectClass=user)(cn=" + user_principal + "))";
-                error_txt = Lang.Txt("User_konnte_nicht_im_AD_gefunden_werden") + ": " + rootSearchBase + " -> " + searchFilter;
+                error_txt = DefaultTextProvider.Txt("User_konnte_nicht_im_AD_gefunden_werden") + ": " + rootSearchBase + " -> " + searchFilter;
             }
             else
             {
