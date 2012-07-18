@@ -107,6 +107,23 @@ public class JobEntry
         this.thr = thr;
     }
 
+    public boolean close()
+    {
+        job.close();
+        
+        if (thr != null)
+        {
+            try
+            {
+                thr.join(1000);
+            }
+            catch (InterruptedException interruptedException)
+            {
+            }
+        }
+        return !thr.isAlive();
+    }
+
 
 
 }
