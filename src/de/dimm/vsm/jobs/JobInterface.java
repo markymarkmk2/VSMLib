@@ -15,6 +15,7 @@ import java.util.Date;
 public interface JobInterface
 {
 
+
     public enum JOBSTATE
     {
         RUNNING,
@@ -46,6 +47,7 @@ public interface JobInterface
     public int hashCode();
     public void run();
     public User getUser();
+    public void close();
 
 
 }
