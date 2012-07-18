@@ -34,6 +34,13 @@ public class CryptTools
         DECRYPT
     };
 
+    static final XTEA8 xtea8Internal;
+    static
+    {
+        xtea8Internal = new XTEA8();
+        xtea8Internal.setKey("ThIsIsNoTvErYsEcUrE42!".getBytes());
+    }
+
 
     public  static String getSha256String( byte[] data ) throws NoSuchAlgorithmException
     {
@@ -221,6 +228,54 @@ public class CryptTools
     {
         return new String(Base64.encodeBase64(hash, false, true), "UTF8");
     }
+
+
+    public static byte[] encryptXTEA8( byte[] data, int len  )
+    {
+        if (len % 8 != 0)
+        {
+            byte[] buff = new byte[ (len / 8 + 1) * 8 ];
+            System.arraycopy(data, 0, buff, 0, len);
+            for( int i = len; i < buff.length; i++)
+                buff[i] = 0;
+
+            xtea8Internal.encrypt(buff, 0,  buff.length);
+
+            return buff;
+        }
+        else
+        {
+            xtea8Internal.encrypt(data, 0, data.length);
+            return data;
+        }
+    }
+    public static byte[] encryptXTEA8( byte[] data )
+    {
+        return encryptXTEA8(data, data.length);
+    }
+    public static byte[] decryptXTEA8( byte[] data, int encLen )
+    {
+        return decryptXTEA8(data, data.length, encLen);
+    }
+    public static byte[] decryptXTEA8( byte[] data, int len, int encLen )
+    {
+        if (len % 8 != 0)
+        {
+            throw new RuntimeException( "Invalid decryption Blocksize" );
+        }
+        else
+        {
+            xtea8Internal.decrypt(data, 0, len);
+            if (len != encLen)
+            {
+                byte buff[] = new byte[encLen];
+                System.arraycopy(data, 0, buff, 0, buff.length);
+                data = buff;
+            }
+            return data;
+        }
+    }
+
     
 
 }    
