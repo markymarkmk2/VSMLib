@@ -24,6 +24,9 @@ public class JDBCLazyList<T> extends LazyList
     Class<T> cl;
     String fieldname;
 
+    public JDBCLazyList()
+    {
+    }
     // ENTRY FROM DB CREATION
     public JDBCLazyList( Class<T> cl, String fieldname, long ownerIdx)
     {
@@ -129,7 +132,10 @@ public class JDBCLazyList<T> extends LazyList
         {
             try
             {
-                rs.close();
+                if (rs != null)
+                {
+                    rs.close();
+                }
             }
             catch (SQLException sQLException)
             {
