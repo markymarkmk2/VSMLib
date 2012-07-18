@@ -38,6 +38,15 @@ import java.util.Properties;
  */
 public interface GuiServerApi
 {
+    // WARNING: THIS HAS TO FIT TO RestoreContext ON SERVER!!!!
+
+    public static final int RF_RECURSIVE = 0x0001;
+    public static final int RF_FULLPATH = 0x0002;
+    public static final int RF_SKIPHOTFOLDER_TIMSTAMPDIR = 0x0004;
+    public static final int RF_INCREMENTAL = 0x0008;
+
+    public static final int RF_COMPRESSION = 0x0010;
+    public static final int RF_ENCRYPTION = 0x0020;
 
     boolean startBackup( Schedule sched, User user ) throws Exception;
     public boolean abortBackup( final Schedule sched );
@@ -65,7 +74,7 @@ public interface GuiServerApi
 
     public List<ScheduleStatusEntry> listSchedulerStats();
 
-    public Properties getAgentProperties( String ip, int port );
+    public Properties getAgentProperties( String ip, int port, boolean withMsg );
 
     public SearchWrapper search( StoragePool pool, ArrayList<SearchEntry> slist );
     public SearchWrapper search( StoragePool pool, ArrayList<SearchEntry> slist, int max );
@@ -107,6 +116,12 @@ public interface GuiServerApi
 
     public boolean restoreJob( SearchWrapper searchWrapper, ArchiveJob job, String ip, int port, String path, int rflags, User user ) throws SQLException, PoolReadOnlyException, IOException;
     public boolean removeJob( SearchWrapper searchWrapper, ArchiveJob job) throws SQLException, PoolReadOnlyException;
+
+    public void syncNode( AbstractStorageNode t, AbstractStorageNode cloneNode, User user  ) throws SQLException, IOException;
+
+    public boolean isBusyNode( AbstractStorageNode node );
+
+    public boolean initNode( AbstractStorageNode node, User user );
 
 
 

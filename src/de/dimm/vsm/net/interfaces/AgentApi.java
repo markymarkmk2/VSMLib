@@ -7,6 +7,7 @@ package de.dimm.vsm.net.interfaces;
 
 import de.dimm.vsm.net.AttributeList;
 import de.dimm.vsm.net.CdpTicket;
+import de.dimm.vsm.net.CompEncDataResult;
 import de.dimm.vsm.net.HashDataResult;
 import de.dimm.vsm.net.RemoteFSElem;
 import de.dimm.vsm.net.RemoteFSElemWrapper;
@@ -33,6 +34,11 @@ public interface AgentApi
     public static final String SOP_SV_VER = "sv.version";
     public static final String SOP_IP = "sv.ip";
     public static final String SOP_PORT = "sv.port";
+
+
+    public static final String OP_AG_ENC = "ag.encryption";
+    public static final String OP_AG_COMP = "ag.compression";
+
 
     public static final int FL_RDONLY = 0;
     public static final int FL_RDWR = 1;
@@ -62,8 +68,11 @@ public interface AgentApi
     String read_hash( RemoteFSElemWrapper file, long pos, int bsize, String alg ) throws IOException;
     String read_hash_complete( RemoteFSElem file, String alg ) throws IOException;
     byte[] read( RemoteFSElemWrapper file, long pos, int bsize) throws IOException;
+    CompEncDataResult readEncryptedCompressed( RemoteFSElemWrapper file, long pos, int bsize, boolean enc, boolean comp) throws IOException;
     HashDataResult read_and_hash( RemoteFSElemWrapper file, long pos, int bsize) throws IOException;
+    CompEncDataResult read_and_hash_encrypted_compressed( RemoteFSElemWrapper file, long pos, int bsize, boolean enc, boolean comp) throws IOException;
     int write( RemoteFSElemWrapper file, byte[] data, long pos);
+    int writeEncryptedCompressed( RemoteFSElemWrapper file, byte[] data, long pos, int encLen, boolean enc, boolean comp);
     byte[] read_complete( RemoteFSElem file) throws IOException;
     SnapshotHandle create_snapshot( RemoteFSElem file);
     boolean release_snapshot( SnapshotHandle handle );
