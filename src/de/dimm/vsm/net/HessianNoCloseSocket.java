@@ -46,6 +46,15 @@ class NoCLoseInputStream extends FilterInputStream
 public class HessianNoCloseSocket  extends Socket
 {
     NoCLoseInputStream is;
+    int timeout;
+
+    public HessianNoCloseSocket( int timeout )
+    {
+        this.is = null;
+        this.timeout = timeout;
+    }
+
+
 
     @Override
     public synchronized void close() throws IOException
@@ -56,7 +65,8 @@ public class HessianNoCloseSocket  extends Socket
     @Override
     public void connect( SocketAddress endpoint ) throws IOException
     {
-        super.connect(endpoint);
+
+        super.connect(endpoint, timeout);
         is = new NoCLoseInputStream(super.getInputStream());
     }
 
