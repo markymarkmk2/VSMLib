@@ -15,6 +15,9 @@ import de.dimm.vsm.fsengine.JDBCLazyList;
  */
 public class PrefilledLazyList<T> extends JDBCLazyList
 {
+    public PrefilledLazyList()
+    {
+    }
    
     public PrefilledLazyList( GenericEntityManager _handler, Class<T> cl, String fieldname, long ownerIdx)
     {
