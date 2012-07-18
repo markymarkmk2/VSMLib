@@ -1271,9 +1271,13 @@ public class JDBCEntityManager implements GenericEntityManager
 
             try
             {
+                // CLEAN ALL LAZY LISTS
                 boolean ac = field.isAccessible();
                 field.setAccessible(true);
                 Object _ll = field.get(o);
+                if (_ll == null)
+                    continue;
+                
                 if (_ll instanceof  LazyList)
                 {
                     LazyList ll = (LazyList) _ll;
@@ -1282,6 +1286,8 @@ public class JDBCEntityManager implements GenericEntityManager
                     
                 }
                 field.setAccessible(ac);
+                
+
             }
             catch (IllegalArgumentException illegalArgumentException)
             {
@@ -1617,7 +1623,7 @@ public class JDBCEntityManager implements GenericEntityManager
             {
                 sb_fields.append(",");
             }                        
-            if (field.isAnnotationPresent(OneToOne.class)  || field.getName().equals("attributes"))
+            if (field.getName().equals("attributes"))
             {
                 String table = field.getType().getSimpleName().toUpperCase();
                 tables.add(table);
