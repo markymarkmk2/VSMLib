@@ -4,6 +4,8 @@
  */
 package de.dimm.vsm.Utilities;
 
+import com.ning.compress.lzf.LZFInputStream;
+import com.ning.compress.lzf.LZFOutputStream;
 import de.dimm.vsm.CS_Constants;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -770,5 +772,67 @@ public class ZipUtilities
          */
         System.exit(ret == false ? 1 : 0);
 
+    }
+
+    public static byte[] lzf_compressblock( byte[] data )
+    {
+        OutputStream os = null;
+        try
+        {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            os = new LZFOutputStream(bos);
+            os.write(data);
+            os.close();
+
+            data = bos.toByteArray();
+        }
+        catch (IOException iOException)
+        {
+            if (os != null)
+            {
+                try
+                {
+                    os.close();
+                }
+                catch (IOException iOException1)
+                {
+                }
+            }
+            return null;
+        }
+        
+        return data;
+    }
+    public static byte[] lzf_decompressblock( byte[] data )
+    {
+        LZFInputStream lzis = null;
+        ByteArrayInputStream bis = new ByteArrayInputStream(data);
+        try
+        {
+            lzis = new LZFInputStream(bis);
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            lzis.readAndWrite(bos);
+            lzis.close();
+
+            data = bos.toByteArray();
+            bos.close();
+        }
+        catch (IOException iOException)
+        {
+            if (lzis != null)
+            {
+                try
+                {
+                    lzis.close();
+                }
+                catch (IOException iOException1)
+                {
+                }
+            }
+            return null;
+        }
+
+        return data;
     }
 }
