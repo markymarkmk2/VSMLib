@@ -120,8 +120,10 @@ public class JobEntry
             catch (InterruptedException interruptedException)
             {
             }
+             return !thr.isAlive();
         }
-        return !thr.isAlive();
+        return true;
+       
     }
 
 
