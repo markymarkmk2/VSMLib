@@ -6,6 +6,7 @@
 package de.dimm.vsm.fsengine;
 
 import de.dimm.vsm.log.LogManager;
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -44,8 +45,9 @@ public class JDBCLazyList<T> extends LazyList
     }
 
     
+  
     
-    
+    @Override
     public void realize(GenericEntityManager _handler)
     {
         if (realList != null)
@@ -70,7 +72,7 @@ public class JDBCLazyList<T> extends LazyList
         {
             // REGISTER PREPARED STATEMENT FOR THIS CLASS AND QUERY
             pscount = handler.addOpenLinkSet(statementName);
-
+           
             // RETRIEVE STATEMENT
             ps = handler.createSelectChildrenPS(cl, fieldname);
 
@@ -115,6 +117,10 @@ public class JDBCLazyList<T> extends LazyList
                     handler.incMissCount();
                     obj = handler.createObject(rs, cl);
 
+                    if (obj == null)
+                    {
+                        throw new IOException( "Cannot resolve Object " + key );
+                    }
                     Element el = new Element(key, obj);
                     c.put(el);
                 }
