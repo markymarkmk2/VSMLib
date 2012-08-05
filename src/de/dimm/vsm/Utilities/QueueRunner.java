@@ -127,7 +127,7 @@ public class QueueRunner
             readyLock.lock();
 
             // THIS IS SYNCHRONIZING WITH LAST READY READY CONDITION AFTER WRITE OF LAST_ELEM
-            if (!lastAddedElem.isFinished())
+            if (lastAddedElem != null && !lastAddedElem.isFinished())
             {
                 // AWAIT RELEASES AND REAQUIRES LOCK
                 isReady.await();                
@@ -141,6 +141,8 @@ public class QueueRunner
         {
             readyLock.unlock();
         }
+        // THIS HAS A REFERENCE TI INDEXER, SO WE CLEAR IF NOT USED ANYMORE
+        lastAddedElem = null;
     }
 
     public void flush()
