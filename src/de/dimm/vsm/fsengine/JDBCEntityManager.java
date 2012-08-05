@@ -18,7 +18,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
-import java.math.BigDecimal;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -538,6 +537,14 @@ public class JDBCEntityManager implements GenericEntityManager
         return idx.toString() + className + poolIdx;
     }
 
+    private String copy( String s )
+    {
+        if (s == null)
+            return s;
+        
+        return String.copyValueOf(s.toCharArray());
+    }
+    
     public <T> T createObject( ResultSet rs, Class<T> t ) throws SQLException, InstantiationException, IllegalAccessException, NoSuchFieldException, NoSuchMethodException, IllegalArgumentException, InvocationTargetException
     {
         T ret_val = null;
@@ -618,7 +625,8 @@ public class JDBCEntityManager implements GenericEntityManager
                 }
                 else if(name.equalsIgnoreCase("XATTRIBUTE"))
                 {
-                    String s = rs.getString(i);
+                    // DECOUPLE DATA FROM DB-CACHE
+                    String s = copy(rs.getString(i));
                     setter.set(objectToFill, s);
                 }
                 else if(fe.clazz.getSimpleName().equals("RemoteFSElem") )
@@ -703,6 +711,10 @@ public class JDBCEntityManager implements GenericEntityManager
                 else
                 {
                     Object val = rs.getObject(i);
+                    // DECOUPLE DATA FROM DB-CACHE
+                    if (val instanceof String)
+                        val = copy(val.toString());
+                    
                     setter.set(objectToFill, val);
                     //                    if (name.toUpperCase().equals("IDX") && val instanceof Long)
                     //                    {
@@ -959,6 +971,13 @@ public class JDBCEntityManager implements GenericEntityManager
     public void em_detach( Object o )
     {
         //System.out.println("Detaching " + o.getClass().getSimpleName() + ":" + getIdx(o));
+        // REMOVE FROM CACHE
+        long idx = getIdx(o);
+        String key = makeKeyFromStr( idx, o.getClass().getSimpleName() );
+
+        Cache c = getCache(OBJECT_CACHE);
+        c.remove(key);
+        
         Field[] fields = o.getClass().getDeclaredFields();
         for (int i = 0; i < fields.length; i++)
         {
@@ -1018,10 +1037,11 @@ public class JDBCEntityManager implements GenericEntityManager
     }
  * */
 
-   
+    
     @Override
     public <T> T em_find( Class<T> t, long idx )
     {
+        ResultSet rs = null;
         T ret_val = null;
         try
         {
@@ -1039,9 +1059,9 @@ public class JDBCEntityManager implements GenericEntityManager
 
             incMissCount();
             int pscount = addOpenSet(t.getSimpleName());
-            PreparedStatement ps = getSelectStatement(t, null);
-            ps.setLong(1, idx);
-            ResultSet rs = ps.executeQuery();
+                PreparedStatement ps = getSelectStatement(t, null);
+                ps.setLong(1, idx);
+            rs = ps.executeQuery();
             if (!rs.next())
             {
                 System.out.println("Cannot resolve DB Object " + key);
@@ -1053,7 +1073,7 @@ public class JDBCEntityManager implements GenericEntityManager
 
             //System.out.println("Finding " + t.getSimpleName() + ":" + idx);
             ret_val = createObject(rs, t);
-            rs.close();
+            
             removeOpenSet(t.getSimpleName(), pscount);
             Element el = new Element(key, ret_val);
             c.put(el);
@@ -1062,6 +1082,18 @@ public class JDBCEntityManager implements GenericEntityManager
         catch (Exception e)
         {   
             LogManager.err_db("Error resolving Object " + t.getSimpleName() + idx, e);
+        }
+        finally
+        {
+            if (rs != null)
+            {
+                try
+                {
+                    rs.close();
+                }
+                catch (Exception e)
+                {}
+            }
         }
         return null;
     }
@@ -1421,7 +1453,7 @@ public class JDBCEntityManager implements GenericEntityManager
                 }
                 catch (Exception exception)
                 {
-                    exception.printStackTrace();
+                    //exception.printStackTrace();
                     throw new SQLException("Cannot remove child", exception);
                 }
             }
@@ -1499,25 +1531,86 @@ public class JDBCEntityManager implements GenericEntityManager
         }
     }
 
+    // ANNOTATION PARSING SEEMS TO TAKE LONG AND WASTS RESOURCES (YOURKIT PROFILER)
+    class OtmMap
+    {
+        String otmtype;
+        String field;
+        Class type;
+
+        public OtmMap( String otmtype, String field, Class type )
+        {
+            this.otmtype = otmtype;
+            this.field = field;
+            this.type = type;
+        }
+        
+        
+    }
+    HashMap<String,OtmMap> fieldOtmHashMap = new HashMap<String, OtmMap>();
+
+    private static final String OTM_NONE = "otm_none";
+    private static final String OTM_LAZY = "otm_lazy";
+    private static final String OTM_EAGER = "otm_eager";
+
+
+    OtmMap buildOtmMap( String key, Field elem, Object o ) throws NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException
+    {
+        OtmMap map = null;
+        OneToMany otm = elem.getAnnotation(OneToMany.class);
+        if (otm != null)
+        {
+            Method m = o.getClass().getMethod("getIdx", (Class[]) null);
+            String field = otm.mappedBy() + "_idx";
+            Class type = (Class) ((ParameterizedType) elem.getGenericType()).getActualTypeArguments()[0];
+            if (otm.fetch() == FetchType.EAGER)
+            {
+                map = new OtmMap(OTM_EAGER, field, type);                
+            }
+            else
+            {
+                map = new OtmMap(OTM_LAZY, field, type);                
+            }
+        }
+        else
+        {
+            map = new OtmMap(OTM_NONE, null, null);            
+        }
+        return map;
+    }
+
+
+
     void fill_lazy_lists( Object o ) throws NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException
     {
         Field[] fields = o.getClass().getDeclaredFields();
         for (int idx = 0; idx < fields.length; idx++)
         {
             Field elem = fields[idx];
+
+            if (skipField( elem  ))
+                continue;
+
+            String key = o.getClass().getSimpleName() + "." + elem.getName();
+
             if (List.class.isAssignableFrom(elem.getType()))
             {
-                OneToMany otm = elem.getAnnotation(OneToMany.class);
-                if (otm != null)
+                OtmMap map = fieldOtmHashMap.get(key);
+                if (map == null)
                 {
+                    map = buildOtmMap(key, elem, o);
+                    fieldOtmHashMap.put(key, map);
+                }
 
+                if (!map.otmtype.equals(OTM_NONE))
+                {
                     Method m = o.getClass().getMethod("getIdx", (Class[]) null);
                     long ret_val_idx = (Long) m.invoke(o, (Object[]) null);
-                    String field = otm.mappedBy() + "_idx";
-                    Class type = (Class) ((ParameterizedType) elem.getGenericType()).getActualTypeArguments()[0];
+                    String field = map.field;
+                    Class type = map.type;
                     boolean ac = elem.isAccessible();
                     elem.setAccessible(true);
-                    if (otm.fetch() == FetchType.EAGER)
+                    if (map.otmtype.equals(OTM_EAGER))
                     {
                         // SONDERFALL, STORAGENODES IM NICHT INITIALISIERTEN POOLHANDLER, EAGER
                         if (poolIdx == 0)
@@ -1531,14 +1624,14 @@ public class JDBCEntityManager implements GenericEntityManager
                                 System.out.println("Pool0: " + o.getClass().getSimpleName());
                             }
                         }
-                        JDBCLazyList ll = new JDBCLazyList(type, field, ret_val_idx/*, this*/);
-                        ll.realize(this);
-                        elem.set(o, ll);
+                       JDBCLazyList ll = new JDBCLazyList(type, field, ret_val_idx/*, this*/);
+                       ll.realize(this);
+                       elem.set(o, ll);
                     }
-                    else
+                    if (map.otmtype.equals(OTM_LAZY))
                     {
                         JDBCLazyList ll = new JDBCLazyList(type, field, ret_val_idx/*, this*/);
-                        elem.set(o, ll);
+                        elem.set(o, ll);                        
                     }
                     elem.setAccessible(ac);
                 }
@@ -1558,18 +1651,18 @@ public class JDBCEntityManager implements GenericEntityManager
         }
         return CacheManager.getInstance().getCache(id);
     }
-    public Cache getDedupBlockCache(  )
-    {
-        CacheManager.create();
-        String id = DEDUPBLOCK_CACHE;
-        if (!CacheManager.getInstance().cacheExists(id))
-        {
-            Cache memoryOnlyCache = new Cache(id, 150000, false, false, 3600, 3600);
-            CacheManager.getInstance().addCache(memoryOnlyCache);
-            memoryOnlyCache.setStatisticsEnabled(true);
-        }
-        return CacheManager.getInstance().getCache(id);
-    }
+//    public Cache getDedupBlockCache(  )
+//    {
+//        CacheManager.create();
+//        String id = DEDUPBLOCK_CACHE;
+//        if (!CacheManager.getInstance().cacheExists(id))
+//        {
+//            Cache memoryOnlyCache = new Cache(id, 150000, false, false, 3600, 3600);
+//            CacheManager.getInstance().addCache(memoryOnlyCache);
+//            memoryOnlyCache.setStatisticsEnabled(true);
+//        }
+//        return CacheManager.getInstance().getCache(id);
+//    }
 
 
     FieldEntry getClassforIgnCaseField( String table, String fieldname )
@@ -1735,6 +1828,7 @@ public class JDBCEntityManager implements GenericEntityManager
     }
 
     
+    @Override
     public Long getIdx( Object o )
     {
         try
@@ -1843,7 +1937,7 @@ public class JDBCEntityManager implements GenericEntityManager
         String table = o.getSimpleName().toUpperCase();
         //GNENERATE KEY
         String key = table + selectPSMap.size();
-        
+
         PreparedStatement ps = selectStatementMap.get(key);
         if (ps != null)
         {
