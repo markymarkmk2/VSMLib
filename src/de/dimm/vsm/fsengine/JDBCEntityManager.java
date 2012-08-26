@@ -45,8 +45,13 @@ import javax.persistence.Transient;
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.rowset.serial.SerialBlob;
 import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheException;
 import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
+import net.sf.ehcache.Statistics;
+import net.sf.ehcache.event.CacheEventListener;
+import net.sf.ehcache.event.CacheEventListenerAdapter;
 
 class NewIndexEntry
 {
@@ -483,7 +488,7 @@ public class JDBCEntityManager implements GenericEntityManager
         }
         catch (SQLException ex)
         {
-            Logger.getLogger(JDBCEntityManager.class.getName()).log(Level.SEVERE, null, ex);
+            LogManager.msg_db(LogManager.LVL_ERR, "Committing closing connection failed" + ex.getMessage() );
         }
         try
         {            
@@ -492,7 +497,7 @@ public class JDBCEntityManager implements GenericEntityManager
         }
         catch (SQLException ex)
         {
-            Logger.getLogger(JDBCEntityManager.class.getName()).log(Level.SEVERE, null, ex);
+            LogManager.msg_db(LogManager.LVL_ERR, "Closing connection failed" + ex.getMessage() );
         }
         linkStatementMap.clear();        
         linkSelectPSMap.clear();
@@ -607,6 +612,9 @@ public class JDBCEntityManager implements GenericEntityManager
                     {
                         Cache c = getCache(OBJECT_CACHE);
                         String key = makeKeyFromObj( idx, objectToFill  );
+                        if (objectToFill == null)
+                            throw new IOException("Null??");
+
                         c.putIfAbsent( new Element(key, objectToFill));
                     }
                 }
@@ -755,9 +763,20 @@ public class JDBCEntityManager implements GenericEntityManager
     {
         return createQuery(string, aClass, maxResults, false);
     }
+    @Override
+    public <T> List<T> createQuery( String string, Class<T> aClass, int maxResults, int maxSeconds ) throws SQLException
+    {
+        return createQuery(string, aClass, maxResults, false, maxSeconds);
+    }
+
+    @Override
+    public <T> List<T> createQuery( String string, Class<T> aClass, int maxResults, boolean distinct) throws SQLException
+    {
+        return createQuery(string, aClass, maxResults, distinct, 0);
+    }
    
     @Override
-    public <T> List<T> createQuery( String string, Class<T> aClass, int maxResults, boolean distinct ) throws SQLException
+    public <T> List<T> createQuery( String string, Class<T> aClass, int maxResults, boolean distinct, int maxSeconds ) throws SQLException
     {
         // FIRST DETECT TABLE ENTRY
         int table_idx = string.toLowerCase().indexOf(aClass.getSimpleName().toLowerCase());
@@ -843,9 +862,14 @@ public class JDBCEntityManager implements GenericEntityManager
             }
         }        
     }
-
     @Override
     public List<Object[]> createNativeQuery( String string, int maxResults ) throws SQLException
+    {
+        return createNativeQuery(string, maxResults, 0);
+    }
+
+    @Override
+    public List<Object[]> createNativeQuery( String string, int maxResults, int maxSeconds ) throws SQLException
     {
         List<Object[]> list = new ArrayList<Object[]>();
         Statement st = null;
@@ -944,6 +968,8 @@ public class JDBCEntityManager implements GenericEntityManager
                     {
                         Cache c = getCache(OBJECT_CACHE);
                         String key = makeKeyFromStr( getIdx(t), aClass.getSimpleName());
+                        if (t == null)
+                            throw new SQLException("Null??");
                         c.putIfAbsent(new Element(key, t));
                     }
                 }
@@ -1117,6 +1143,9 @@ public class JDBCEntityManager implements GenericEntityManager
             {
                 if (cachedObject.getValue() != t)
                 {
+                    if (t == null)
+                        throw new SQLException("Null??");
+
                     c.put(new Element(key, t));
                 }
             }
@@ -1218,6 +1247,8 @@ public class JDBCEntityManager implements GenericEntityManager
             //System.out.println("Persisting " + o.getClass().getSimpleName() + ":" + idx);
             Cache c = getCache(OBJECT_CACHE);
             String key = makeKeyFromObj( idx, o );
+            if (o == null)
+                throw new SQLException("Null??");
             c.putIfAbsent(new Element(key, o));
         }
     }
@@ -1638,6 +1669,44 @@ public class JDBCEntityManager implements GenericEntityManager
             }
         }
     }
+    static void unrealizeChildren(FileSystemElemNode node)
+    {
+        //node.getChildren().unRealize();
+        if (node.getChildren().isRealized())
+        {
+            for (int i = 0; i < node.getChildren().size(); i++)
+            {
+                FileSystemElemNode child = node.getChildren().get(i);
+                child.getHashBlocks().unRealize();
+                child.getXaNodes().unRealize();
+                child.getLinks().unRealize();
+
+
+                if (child.getChildren().isRealized())
+                {
+                    unrealizeChildren(child);
+                }
+            }
+            node.getChildren().unRealize();
+        }
+    }
+    void clearCacheObj( Object o )
+    {
+        try
+        {
+            if (o instanceof FileSystemElemNode)
+            {
+                FileSystemElemNode node = (FileSystemElemNode) o;
+                unrealizeChildren(node);
+
+            }
+            em_detach(o);
+        }
+        catch (Exception e)
+        {
+            System.out.println("Exception during cache object clear:" + e.getMessage());
+        }
+    }
 
     public Cache getCache( String id )
     {
@@ -1645,8 +1714,39 @@ public class JDBCEntityManager implements GenericEntityManager
         CacheManager.create();
         if (!CacheManager.getInstance().cacheExists(id))
         {
-            Cache memoryOnlyCache = new Cache(id, 50000, false, false, 500, 500);
+            CacheEventListener listener = new CacheEventListenerAdapter()
+            {
+
+                @Override
+                public void notifyElementEvicted( Ehcache cache, Element element )
+                {
+                    if (element.getObjectValue() != null)
+                    {
+                        clearCacheObj( element.getObjectValue() );
+                    }
+                    else
+                    {
+                        System.out.println("Evicting null, key was " + element.getKey());
+                    }
+                }
+
+                @Override
+                public void notifyElementRemoved( Ehcache cache, Element element ) throws CacheException
+                {
+                    if (element.getObjectValue() != null)
+                    {
+                        clearCacheObj( element.getObjectValue() );
+                    }
+                    else
+                    {
+                        //System.out.println("Removing null, key was " + element.getKey());
+                    }
+                }
+            };
+
+            Cache memoryOnlyCache = new Cache(id, 50000, false, false, /*timetoLive s*/180, /*timetoIdle s*/180);
             CacheManager.getInstance().addCache(memoryOnlyCache);
+            memoryOnlyCache.getCacheEventNotificationService().registerListener(listener);
             memoryOnlyCache.setStatisticsEnabled(true);
         }
         return CacheManager.getInstance().getCache(id);
@@ -2259,6 +2359,13 @@ public class JDBCEntityManager implements GenericEntityManager
     public String getTimestamp( Date d )
     {
         return sdf.format(d);
+    }
+
+    public void writeCacheStatistics( String id )
+    {
+        Cache ch = getCache(id);
+        Statistics st = ch.getStatistics();
+        System.out.println("Size: " + ch.getSize() + ": " + st.toString() );
     }
 
     
