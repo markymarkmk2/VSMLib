@@ -7,6 +7,7 @@ package de.dimm.vsm.net.interfaces;
 
 import de.dimm.vsm.net.CdpEvent;
 import de.dimm.vsm.net.CdpTicket;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -24,7 +25,9 @@ public interface ServerApi
 
     Properties get_properties();
     boolean alert( String reason, String msg );
+    boolean alert( List<String> reason, String msg );
 
 
     boolean cdp_call( CdpEvent ev, CdpTicket ticket );
+    boolean cdp_call( List<CdpEvent> ev, CdpTicket ticket );
 }
