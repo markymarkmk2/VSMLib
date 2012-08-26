@@ -27,13 +27,13 @@ public class StoragePoolQry implements Serializable
     private long snapShotTs;
     ArrayList<SearchEntry> slist;
     boolean showDeleted;
-
+    
     public StoragePoolQry( User user, boolean readOnly, long snapShotTs, boolean showDeleted )
     {
         this.user = user;
         this.readOnly = readOnly;
         this.snapShotTs = snapShotTs;
-        this.showDeleted = showDeleted;
+        this.showDeleted = showDeleted;        
     }
 
     public StoragePoolQry( User user, boolean readOnly, long snapShotTs )
@@ -170,12 +170,28 @@ public class StoragePoolQry implements Serializable
     }
     public boolean matchesUser( FileSystemElemNode node, FileSystemElemAttributes attr, UserManager userManager )
     {
+        if (!isAllowedByVsmMapping(node))
+            return false;
 
         if (user.isAdmin())
             return true;
 
         if (user.isIgnoreAcl())
             return true;
+
+        // FIRST POSIX TODO: CHECK IF user IS POSIX USER ON THIS MACHINE
+        if (node.isDirectory())
+        {
+            // OTHER READ EXECUTE ?
+            if ((attr.getPosixMode() & 05) == 05)
+                return true;
+        }
+        else
+        {
+            // OTHER READ ?
+            if ((attr.getPosixMode() & 04) == 04)
+                return true;
+        }
         
         String aclInfoData = attr.getAclInfoData();        
 
@@ -291,4 +307,39 @@ public class StoragePoolQry implements Serializable
         // NO ACL FOUND, ALLOW EVERYTHING
         return true;
     }
+
+    public static void build_relative_virtual_path( FileSystemElemNode file_node, StringBuilder sb )
+    {
+        sb.setLength(0);
+        sb.insert(0, file_node.getName());
+        sb.insert(0, "/");
+
+        int max_depth = 1024;
+
+        while( file_node.getParent() != null)
+        {
+            file_node = file_node.getParent();
+            if (!file_node.getName().equals("/"))
+            {
+                sb.insert(0, file_node.getName());
+                sb.insert(0, "/");
+            }
+
+            if (max_depth-- <= 0)
+                throw new RuntimeException("Path_is_too_deep");
+        }
+    }
+
+    private boolean isAllowedByVsmMapping(FileSystemElemNode node)
+    {
+        if (user.getFsMapper().isEmpty())
+            return true;
+
+        StringBuilder sb = new StringBuilder();
+        build_relative_virtual_path ( node, sb );
+        String path = sb.toString();
+
+        return user.getFsMapper().isAllowed( path );
+    }
+
 }
