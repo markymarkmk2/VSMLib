@@ -32,5 +32,7 @@ public interface FileHandle
     public boolean delete() throws PoolReadOnlyException;
 
     public long length();
+
+    public boolean exists();
    
 }
