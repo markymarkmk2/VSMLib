@@ -6,6 +6,7 @@
 package de.dimm.vsm.net.interfaces;
 
 import de.dimm.vsm.net.CdpEvent;
+import java.util.List;
 
 /**
  *
@@ -14,4 +15,5 @@ import de.dimm.vsm.net.CdpEvent;
 public interface CDPEventProcessor
 {
     boolean process( CdpEvent ev );
+    boolean processList( List<CdpEvent> evList );
 }
