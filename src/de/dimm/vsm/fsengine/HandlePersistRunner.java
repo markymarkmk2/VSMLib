@@ -205,6 +205,7 @@ public class HandlePersistRunner
         catch (Exception exc)
         {
         }
+        lastAddedElem = null;
         keepRunning = false;
     }
 
