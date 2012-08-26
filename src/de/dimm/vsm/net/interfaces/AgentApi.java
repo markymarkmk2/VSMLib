@@ -9,9 +9,11 @@ import de.dimm.vsm.net.AttributeList;
 import de.dimm.vsm.net.CdpTicket;
 import de.dimm.vsm.net.CompEncDataResult;
 import de.dimm.vsm.net.HashDataResult;
+import de.dimm.vsm.net.InvalidCdpTicketException;
 import de.dimm.vsm.net.RemoteFSElem;
 import de.dimm.vsm.net.RemoteFSElemWrapper;
 import de.dimm.vsm.net.StoragePoolWrapper;
+import de.dimm.vsm.records.Excludes;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -38,6 +40,7 @@ public interface AgentApi
 
     public static final String OP_AG_ENC = "ag.encryption";
     public static final String OP_AG_COMP = "ag.compression";
+    public static final String OP_CDP_EXCLUDES = "ag.cdpexcludes";
 
 
     public static final int FL_RDONLY = 0;
@@ -78,10 +81,11 @@ public interface AgentApi
     boolean release_snapshot( SnapshotHandle handle );
 
     CdpTicket init_cdp( InetAddress addr, int port, boolean ssl, boolean tcp, RemoteFSElem file, long poolIdx, long schedIdx, long clientInfoIdx, long clientVolumeIdx ) throws IOException;
-    boolean check_cdp( CdpTicket ticket );
-    boolean pause_cdp( CdpTicket ticket  );
-    boolean stop_cdp( CdpTicket ticket );    
+    boolean check_cdp( CdpTicket ticket ) throws InvalidCdpTicketException;
+    boolean pause_cdp( CdpTicket ticket  ) throws InvalidCdpTicketException;
+    boolean stop_cdp( CdpTicket ticket ) throws InvalidCdpTicketException;
     List<CdpTicket> getCdpTickets();
+    void set_cdp_excludes(  CdpTicket ticket, List<Excludes> exclList ) throws InvalidCdpTicketException;
 
     boolean mountVSMFS( InetAddress addr, int port, StoragePoolWrapper pool, /*Date timestamp, String subPath, User user,*/ String drive);
     boolean unmountVSMFS( InetAddress addr, int port, StoragePoolWrapper pool);
