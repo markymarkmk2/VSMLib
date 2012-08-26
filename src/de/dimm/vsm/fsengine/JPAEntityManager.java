@@ -240,6 +240,13 @@ public class JPAEntityManager implements GenericEntityManager
         return tqr.getResultList();
     }
 
+    @Override
+    public List<Object[]> createNativeQuery( String string, int qryCount, int maxSeconds )
+    {
+        Query tqr = em.createNativeQuery(string, "" );
+        tqr.setMaxResults(qryCount);
+        return tqr.getResultList();
+    }
 
 
     @Override
@@ -327,6 +334,18 @@ public class JPAEntityManager implements GenericEntityManager
 
     
     public Long getIdx( Object o )
+    {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <T> List<T> createQuery( String string, Class<T> aClass, int maxResults, int maxSeconds ) throws SQLException
+    {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <T> List<T> createQuery( String string, Class<T> aClass, int maxResults, boolean distinct, int maxSeconds ) throws SQLException
     {
         throw new UnsupportedOperationException("Not supported yet.");
     }
