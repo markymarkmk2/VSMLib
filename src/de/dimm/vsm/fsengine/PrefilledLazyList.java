@@ -5,9 +5,6 @@
 
 package de.dimm.vsm.fsengine;
 
-import de.dimm.vsm.fsengine.GenericEntityManager;
-import de.dimm.vsm.fsengine.JDBCLazyList;
-
 
 /**
  *
