@@ -41,9 +41,9 @@ public class CdpEvent implements Serializable
     {
         return new CdpEvent(client, path, CDP_DELETE_DIR_RECURSIVE, elem);
     }
-    public static CdpEvent createParentDirEvent( InetAddress client, String parentPath, RemoteFSElem elem)
+    public static CdpEvent createSyncDirEvent( InetAddress client, String path, RemoteFSElem elem)
     {
-        return new CdpEvent(client, parentPath, CDP_SYNC_DIR, elem);
+        return new CdpEvent(client, path, CDP_SYNC_DIR, elem);
     }
 
     private CdpEvent(InetAddress client, String path, int mode,  RemoteFSElem e)
@@ -155,4 +155,15 @@ public class CdpEvent implements Serializable
         }
         return true;
     }
+
+    public void setPath( String p )
+    {
+        path = p;
+    }
+
+    public void setMode( int mode )
+    {
+        this.mode = mode;
+    }
+    
 }
