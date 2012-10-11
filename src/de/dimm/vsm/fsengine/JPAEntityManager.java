@@ -41,6 +41,11 @@ public class JPAEntityManager implements GenericEntityManager
     {
         em.persist(o);
     }
+    @Override
+    public void em_persist( Object o, boolean withCache )
+    {
+        em.persist(o);
+    }
 
     @Override
     public void em_detach( Object o )

@@ -696,7 +696,7 @@ public class JDBCEntityManager implements GenericEntityManager
                             if (elem == null)
                             {
                                 find_stack_count++;
-                                if (find_stack_count > 3)
+                                if (find_stack_count > 30)
                                 {
                                     System.out.println("Find stack: " + find_stack_count + " " + fe.clazz.getSimpleName() + idx);
                                 }
@@ -1222,6 +1222,12 @@ public class JDBCEntityManager implements GenericEntityManager
     @Override
     public void em_persist( Object o ) throws SQLException
     {
+        em_persist(o, false);
+    }
+    
+    @Override
+    public void em_persist( Object o, boolean noCache ) throws SQLException
+    {
 
         long newIndex = newIndexValue(this, o);
 
@@ -1241,7 +1247,7 @@ public class JDBCEntityManager implements GenericEntityManager
 
 
         // ADD TO CACHE
-        if (c_Persist2Cache)
+        if (c_Persist2Cache && !noCache)
         {
             long idx = getIdx(o);
             //System.out.println("Persisting " + o.getClass().getSimpleName() + ":" + idx);
@@ -1939,7 +1945,7 @@ public class JDBCEntityManager implements GenericEntityManager
         }
         catch (Exception exception)
         {
-            throw new RuntimeException("Illegal Object for getIdx", exception);
+        throw new RuntimeException("Illegal Object for getIdx", exception);
         }
     }
 

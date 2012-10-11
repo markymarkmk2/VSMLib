@@ -11,6 +11,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.Element;
@@ -63,7 +64,7 @@ public class JDBCLazyList<T> extends LazyList
             }
             JDBCEntityManager handler = (JDBCEntityManager)_handler;
 
-            realList = new ArrayList<T>();
+            List<T> newList = new ArrayList<T>();
 
             String statementName = cl.getSimpleName() + fieldname;
 
@@ -105,12 +106,12 @@ public class JDBCLazyList<T> extends LazyList
 
                     // TRY TO GET OBJECT FROM CACHE
                     Cache c = handler.getCache(JDBCEntityManager.OBJECT_CACHE);
-                    Object obj = null;
+                    T obj = null;
                     Element cacheElem = c.get(key);
                     if (cacheElem != null)
                     {
                         handler.incHitCount();
-                        obj = cacheElem.getValue();
+                        obj = (T)cacheElem.getValue();
                     }
 
                     // NOT FOUND, GET FROM DB
@@ -126,9 +127,15 @@ public class JDBCLazyList<T> extends LazyList
                         Element el = new Element(key, obj);
                         c.put(el);
                     }
-    
-                    realList.add(obj);
+
+                    if (obj == null)
+                        LogManager.err_db("Obj is null");
+                    if (newList == null)
+                        LogManager.err_db("List is null");
+                    newList.add(obj);
                 }
+                // SET NEW LIST
+                realList = newList;
                 //System.out.println("Loaded " + realList.size() + " entries");
 
             }
@@ -152,5 +159,4 @@ public class JDBCLazyList<T> extends LazyList
             }
         }
     }
-
 }
