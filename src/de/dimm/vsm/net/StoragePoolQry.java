@@ -27,6 +27,7 @@ public class StoragePoolQry implements Serializable
     private long snapShotTs;
     ArrayList<SearchEntry> slist;
     boolean showDeleted;
+    boolean useMappingFilter = true; // DEFAULT: USE MAPPING FILTER
     
     public StoragePoolQry( User user, boolean readOnly, long snapShotTs, boolean showDeleted )
     {
@@ -68,6 +69,17 @@ public class StoragePoolQry implements Serializable
     public boolean hasSearchList()
     {
         return slist != null;
+    }
+
+    public void setUseMappingFilter(boolean b)
+    {
+        useMappingFilter = b;
+    }
+
+    boolean restrictByPosix(User user)
+    {
+        return false;
+//        return user.restrictByPosix();
     }
     public boolean matchesSearchListTimestamp( List<SearchEntry> slist, FileSystemElemAttributes attr )
     {
@@ -170,7 +182,7 @@ public class StoragePoolQry implements Serializable
     }
     public boolean matchesUser( FileSystemElemNode node, FileSystemElemAttributes attr, UserManager userManager )
     {
-        if (!isAllowedByVsmMapping(node))
+        if (useMappingFilter && !isAllowedByVsmMapping(node))
             return false;
 
         if (user.isAdmin())
@@ -179,19 +191,6 @@ public class StoragePoolQry implements Serializable
         if (user.isIgnoreAcl())
             return true;
 
-        // FIRST POSIX TODO: CHECK IF user IS POSIX USER ON THIS MACHINE
-        if (node.isDirectory())
-        {
-            // OTHER READ EXECUTE ?
-            if ((attr.getPosixMode() & 05) == 05)
-                return true;
-        }
-        else
-        {
-            // OTHER READ ?
-            if ((attr.getPosixMode() & 04) == 04)
-                return true;
-        }
         
         String aclInfoData = attr.getAclInfoData();        
 
@@ -231,19 +230,13 @@ public class StoragePoolQry implements Serializable
                         if (isAccessAllow( vSMAclEntry ))
                             return true;
                     }
-
-                    for (int j = 0; j < user.getGroups().size(); j++)
+                    if (user.isMemberOfGroup( vSMAclEntry.principalName()) )
                     {
-                        // DOES THIS ACL HANDLE READ RIGHTS
-                        String group = user.getGroups().get(j);
-                        if (group.equalsIgnoreCase(vSMAclEntry.principalName()))
-                        {                            
-                            if (isAccessDeny( vSMAclEntry ))
-                                return false;
-                            if (isAccessAllow( vSMAclEntry ))
-                                return true;
-                            // TODO: ALARM, AUDIT
-                        }
+                        if (isAccessDeny( vSMAclEntry ))
+                            return false;
+                        if (isAccessAllow( vSMAclEntry ))
+                            return true;
+                        // TODO: ALARM, AUDIT
                     }
                 }
                 else
@@ -262,25 +255,13 @@ public class StoragePoolQry implements Serializable
                     // POSIX GROUP
                     else if(vSMAclEntry.principalName().equals("GROUP@"))
                     {
-                        List<String> groups = userManager.getGroupsForUser( ac.getUserName() );
-
-                        for (int j = 0; j < user.getGroups().size(); j++)
+                        if (isInPosixGroup( attr, user ))
                         {
-                            // DOES THIS ACL HANDLE READ RIGHTS
-                            String ugroup = user.getGroups().get(j);
-
-                            for (int g = 0; g < groups.size(); g++)
-                            {
-                                String group = groups.get(g);
-                                if (group.equalsIgnoreCase(ugroup))
-                                {
-                                    if (isAccessDeny( vSMAclEntry ))
-                                        return false;
-                                    if (isAccessAllow( vSMAclEntry ))
-                                        return true;
-                                    // TODO: ALARM, AUDIT
-                                }
-                            }
+                            if (isAccessDeny( vSMAclEntry ))
+                                return false;
+                            if (isAccessAllow( vSMAclEntry ))
+                                return true;
+                            // TODO: ALARM, AUDIT
                         }
                     }
                     // POSIX OTHER
@@ -292,7 +273,7 @@ public class StoragePoolQry implements Serializable
                             return true;
                         // TODO: ALARM, AUDIT
                     }
-                    else if(vSMAclEntry.principalName().equalsIgnoreCase(user.getUserName()))
+                    else if (user.isAllowed( vSMAclEntry.principalName()) )
                     {
                         if (isAccessDeny( vSMAclEntry ))
                             return false;
@@ -304,8 +285,69 @@ public class StoragePoolQry implements Serializable
             }
             return false;
         }
-        // NO ACL FOUND, ALLOW EVERYTHING
+        // HERE WE GO IF NO ACL
+        // FIRST POSIX TODO: CHECK IF user IS POSIX USER ON THIS MACHINE
+        if (restrictByPosix(user))
+        {
+            if (node.isDirectory())
+            {
+                // OTHER READ EXECUTE ?
+                if ((attr.getPosixMode() & 05) == 05)
+                    return true;
+
+                if ((attr.getPosixMode() & 050) == 050)
+                {
+                    if (isInPosixGroup( attr, user ))
+                        return true;
+                }
+                if ((attr.getPosixMode() & 500) == 500)
+                {
+                    if (isSamePosixUser( attr, user ))
+                        return true;
+                }
+
+            }
+            else
+            {
+                // OTHER READ ?
+
+                if ((attr.getPosixMode() & 04) == 04)
+                    return true;
+
+                if ((attr.getPosixMode() & 040) == 040)
+                {
+                    if (isInPosixGroup( attr, user ))
+                        return true;
+                }
+                if ((attr.getPosixMode() & 400) == 400)
+                {
+                    if (isSamePosixUser( attr, user ))
+                        return true;
+                }
+            }
+        }
+
+        // NO ACL AND POSIX RESTRICTIONS FOUND, ALLOW EVERYTHING
+        
         return true;
+    }
+
+    boolean isInPosixGroup( FileSystemElemAttributes attr, User user )
+    {
+        if (attr.getGidName() != null)
+        {
+            return user.isMemberOfGroup(attr.getGidName());
+        }
+        return false;
+    }
+
+    boolean isSamePosixUser( FileSystemElemAttributes attr, User user )
+    {
+        if (attr.getUidName() != null && user.getUserName() != null)
+        {
+            return user.getUserName().equals(attr.getUidName());
+        }
+        return false;
     }
 
     public static void build_relative_virtual_path( FileSystemElemNode file_node, StringBuilder sb )
