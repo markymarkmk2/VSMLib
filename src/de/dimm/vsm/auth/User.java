@@ -27,9 +27,36 @@ public class User implements Serializable
     String userName;
     String loginName;
     String niceName;
-    List<String> groups;
+    Map<String,Integer> groups;
 
-    public class VsmFsMapper
+    public boolean isAllowed( String principalName )
+    {
+        String principalUsername = principalName;
+        int domainIndex = principalName.lastIndexOf("\\");
+        if (domainIndex >= 0)
+            principalUsername = principalName.substring(domainIndex + 1);
+
+        if (principalUsername.equalsIgnoreCase(userName) || principalUsername.equalsIgnoreCase(loginName))
+            return true;
+
+        return false;
+    }
+
+    public boolean isMemberOfGroup( String gname )
+    {
+        return groups.containsKey(gname);
+//        for (int j = 0; j < groups.size(); j++)
+//        {
+//            String group = groups.get(j);
+//            if (group.equalsIgnoreCase(principalName))
+//            {
+//                return true;
+//            }
+//        }
+//        return false;
+    }
+
+    public class VsmFsMapper implements Serializable
     {
         List<VsmFsEntry> vsmList;
 
@@ -98,8 +125,8 @@ public class User implements Serializable
                     if (vsmFsEntry.getvPath().startsWith(remoteFSElem.getPath()))
                     {
                         String path = vsmFsEntry.getvPath();
-                        if (remoteFSElem.getPath().length() > vsmFsEntry.getvPathLen())
-                            path = remoteFSElem.getPath();
+//                        if (path.length() > remoteFSElem.getPath().length() && path.charAt(remoteFSElem.getPath().length()) != '/' )
+//                            continue;
 
                         RemoteFSElem newElem;
                         if  (remoteFSElem.getMtimeMs() == 0)
@@ -116,7 +143,7 @@ public class User implements Serializable
         }
     }
 
-    public class  VsmFsEntry
+    public class  VsmFsEntry  implements Serializable
     {
         int vPathLen;
         String vPath;
@@ -172,21 +199,27 @@ public class User implements Serializable
         this.niceName = niceName;
         this.loginName = loginName;
         
-        groups = new ArrayList<String>();
+        groups = new HashMap<String,Integer>();
         
         fsMapper = new VsmFsMapper();
     }
 
-    public void setGroups( List<String> groups )
+    public void setGroups( List<String> groups, List<Integer> gids )
     {
         this.groups.clear();
-        this.groups.addAll(groups);
+        for (int i = 0; i < groups.size(); i++)
+        {
+            Integer gid = -1; 
+            if (gids != null)
+                gid = gids.get(i);
+            this.groups.put(groups.get(i), gid );
+        }
     }
 
-    public List<String> getGroups()
-    {
-        return groups;
-    }
+//    public List<String> getGroups()
+//    {
+//        return groups;
+//    }
 
     public String getNiceName()
     {
@@ -266,9 +299,8 @@ public class User implements Serializable
         for (int i = 0; i < role.getRoleOptions().size(); i++)
         {
             RoleOption opt =  role.getRoleOptions().get(i);
-            if (!opt.getToken().equals(RoleOption.RL_FSMAPPINGFILE))
+            if (opt.getToken() == null || !opt.getToken().equals(RoleOption.RL_FSMAPPINGFILE))
                 continue;
-
 
             final File f = new File( FS_MAPPINGFOLDER,opt.getOptionStr());
             try

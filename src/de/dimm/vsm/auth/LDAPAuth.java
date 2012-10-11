@@ -848,7 +848,7 @@ public class LDAPAuth extends GenericRealmAuth
 
             ArrayList<String>groups = list_groups(user);
 
-            user.setGroups(groups);
+            user.setGroups(groups, null);
 
             return user;
         }

@@ -19,15 +19,7 @@ import javax.naming.NamingException;
  * @author mw
  */
 
-           /*
-             * CLIENT HAS THESE:
-                new AccountConnectorTypeEntry("ldap","LDAP"),
-                new AccountConnectorTypeEntry("smtp","SMTP"),
-                new AccountConnectorTypeEntry("pop","POP3"),
-                new AccountConnectorTypeEntry("imap","IMAP"),
-                new AccountConnectorTypeEntry("imap","IMAP"),
-             * */
-
+          
 
  
 public abstract class GenericRealmAuth
@@ -59,7 +51,7 @@ public abstract class GenericRealmAuth
         this.port = port;
     }
 
-    public static GenericRealmAuth factory_create_realm( /*Role role,*/ AccountConnector act)
+    public static GenericRealmAuth factory_create_realm( AccountConnector act)
     {
         GenericRealmAuth realm = null;
 
@@ -71,7 +63,7 @@ public abstract class GenericRealmAuth
         }
         if (typ.equals(AccountConnector.TY_AD))
         {
-            realm = new ActiveDirectoryAuth( act.getUsername(), act.getPwd(), act.getIp(), act.getSearchbase(), act.getPort(), act.getFlags() );
+            realm = new ActiveDirectoryAuth( act );
         }
         if (typ.equals(AccountConnector.TY_LDAP))
         {
@@ -84,7 +76,11 @@ public abstract class GenericRealmAuth
         }
         if (typ.equals(AccountConnector.TY_IMAP))
         {
-            realm = new IMAPAuth( act.getIp(), act.getPort(), act.getFlags() );            
+            realm = new IMAPAuth( act.getIp(), act.getPort(), act.getFlags() );
+        }
+        if (typ.equals(AccountConnector.TY_SMTP))
+        {
+            realm = new SMTPAuth( act.getIp(), act.getPort(), act.getFlags() );
         }
         
         if (realm != null)

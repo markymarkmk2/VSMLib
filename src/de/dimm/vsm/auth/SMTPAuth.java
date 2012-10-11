@@ -252,13 +252,18 @@ public class SMTPAuth extends GenericRealmAuth
     @Override
     public User createUser( Role role, String loginName  )
     {
-        throw new UnsupportedOperationException("Not supported yet.");
+
+        User user = new User(loginName, loginName, loginName);
+        user.setRole(role);
+
+        return user;
     }
 
     @Override
-    public User load_user( String user_name )
+    public User load_user( String loginName )
     {
-        throw new UnsupportedOperationException("Not supported yet.");
+        User user = new User(loginName, loginName, loginName);
+        return user;
     }
     
 }

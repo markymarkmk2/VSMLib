@@ -6,6 +6,7 @@ package de.dimm.vsm.auth;
 
 import de.dimm.vsm.Utilities.DefaultTextProvider;
 import de.dimm.vsm.log.LogManager;
+import de.dimm.vsm.records.AccountConnector;
 import de.dimm.vsm.records.Role;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -30,12 +31,15 @@ class ADUserContext implements UserContext
     String dn;
     LdapContext ctx;
     String niceName;
+    String samAccount;
+    
 
-    public ADUserContext( String sid, LdapContext ctx, String niceName )
+    public ADUserContext( String sid, LdapContext ctx, String niceName, String samAccount )
     {
         this.dn = sid;
         this.ctx = ctx;
         this.niceName = niceName;
+        this.samAccount = samAccount;       
     }
 }
 
@@ -45,25 +49,29 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
     String admin_name;
     String admin_pwd;
     String user_search_base;
+    String ntDomainName;
     LdapContext ctx;
 
     public static final String DN = "distinguishedName";
+    public static final String SAM_ACCOUNT_NAME = "sAMAccountName";
 
     ADUserContext user_context;
 
     String groupIdentifier;
 
-    ActiveDirectoryAuth( String admin_name, String admin_pwd, String ldap_host, String user_search_base, int ldap_port, long  flags )
+    ActiveDirectoryAuth( AccountConnector act )
     {
-        super(flags, ldap_host, ldap_port);
-        this.admin_name = admin_name;
-        this.admin_pwd = admin_pwd;
-        this.user_search_base = user_search_base;
+        
+        super(act.getFlags(), act.getIp(),  act.getPort());
+        this.admin_name = act.getUsername();
+        this.admin_pwd = act.getPwd();
+        this.user_search_base =  act.getSearchbase();
+        this.ntDomainName = act.getNtDomainName();
         
         
-        if (ldap_port == 0)
+        if (act.getPort() == 0)
         {
-            ldap_port = is_ssl() ? 636 : 389;
+            port = is_ssl() ? 636 : 389;
         }
         System.setProperty("javax.security.auth.useSubjectCredsOnly", "false");
         this.groupIdentifier = "";
@@ -342,7 +350,7 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
         ctrl.setSearchScope(SearchControls.SUBTREE_SCOPE);
         ctrl.setReturningAttributes(new String[]
                 {
-                    DN, "cn"
+                    DN, "cn", SAM_ACCOUNT_NAME
                 });
 
         try
@@ -392,6 +400,11 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
             Attribute cn_adn = res_attr.get("cn");
             if (cn_adn != null)
                 niceName = cn_adn.get().toString();
+
+            // SAM ACCOUNTNAME EXISTS ALWAYS
+            String samAccountName = null;
+            if (res_attr.get(SAM_ACCOUNT_NAME) != null)
+                samAccountName = res_attr.get(SAM_ACCOUNT_NAME).toString();
                       
 
             // NOW GO FOR LOGIN USER WITH DN
@@ -408,7 +421,7 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
 
             LogManager.msg_auth( LogManager.LVL_DEBUG, "User connected successfully: " + user_dn );
 
-            return new ADUserContext(user_dn, user_ctx, niceName);
+            return new ADUserContext(user_dn, user_ctx, niceName, samAccountName);
         }
         catch (Exception namingException)
         {
@@ -506,30 +519,30 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
     }
     
 
-    /**
-     * @param args
-     */
-    public static void main( String[] args )
-    {
-        try
-        {
-            ActiveDirectoryAuth test = new ActiveDirectoryAuth("Administrator", "helikon", "192.168.1.120", "", 0, /*flags*/0);
-            if (test.connect())
-            {
-                ADUserContext uctx = test.open_user( "mark@localhost", "12345" );
-                if (uctx != null)
-                {
-                    String mail = test.get_user_attribute(uctx, "mail");
-
-                    test.close_user(uctx);
-                }
-            }
-        }
-        catch (Exception exc)
-        {
-            exc.printStackTrace();
-        }
-    }
+//    /**
+//     * @param args
+//     */
+//    public static void main( String[] args )
+//    {
+//        try
+//        {
+//            ActiveDirectoryAuth test = new ActiveDirectoryAuth("Administrator", "helikon", "192.168.1.120", "", 0, /*flags*/0);
+//            if (test.connect())
+//            {
+//                ADUserContext uctx = test.open_user( "mark@localhost", "12345" );
+//                if (uctx != null)
+//                {
+//                    String mail = test.get_user_attribute(uctx, "mail");
+//
+//                    test.close_user(uctx);
+//                }
+//            }
+//        }
+//        catch (Exception exc)
+//        {
+//            exc.printStackTrace();
+//        }
+//    }
 
     @Override
     public User createUser( Role role, String loginname )
@@ -538,7 +551,7 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
             return null;
 
 
-        User user = new User(user_context.dn, loginname, user_context.niceName);
+        User user = new WinUser(user_context.dn, loginname, user_context.niceName, user_context.samAccount,ntDomainName );
         user.setRole(role);
 
         return user;
@@ -557,7 +570,7 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
             ctrl.setSearchScope(SearchControls.SUBTREE_SCOPE);
             ctrl.setReturningAttributes(new String[]
                     {
-                        DN, "cn"
+                        DN, "cn", SAM_ACCOUNT_NAME
                     });
 
             rootSearchBase = get_user_search_base();
@@ -645,13 +658,16 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
             if (cn_adn != null)
                 niceName = cn_adn.get().toString();
 
+            // SAM ACCOUNTNAME EXISTS ALWAYS
+            String samAccountName = null;
+            if (res_attr.get(SAM_ACCOUNT_NAME) != null)
+                samAccountName = res_attr.get(SAM_ACCOUNT_NAME).toString();
 
-
-            User user = new User(user_dn, user_principal, niceName);
+            User user = new WinUser(user_dn, user_principal, niceName, samAccountName, ntDomainName );
 
             ArrayList<String>groups = list_groups(user);
 
-            user.setGroups(groups);
+            user.setGroups(groups, null);
 
             return user;
         }

@@ -135,7 +135,7 @@ public class POP3Auth extends GenericRealmAuth
         }
         catch (AuthenticationFailedException exc)
         {
-            LogManager.msg_auth( LogManager.LVL_ERR, "SMTP auth failed", exc);
+            LogManager.msg_auth( LogManager.LVL_ERR, "POP3 auth failed", exc);
             error_txt = DefaultTextProvider.Txt("Authentication_failed");
         }
         catch (MessagingException messagingException)
@@ -168,13 +168,16 @@ public class POP3Auth extends GenericRealmAuth
     @Override
     public User createUser( Role role, String loginName  )
     {
-        throw new UnsupportedOperationException("Not supported yet.");
+        User user = new User(loginName, loginName, loginName);
+        user.setRole(role);
+        return user;
     }
 
     @Override
-    public User load_user( String user_name )
+    public User load_user( String loginName )
     {
-        throw new UnsupportedOperationException("Not supported yet.");
+        User user = new User(loginName, loginName, loginName);
+        return user;
     }
 
     

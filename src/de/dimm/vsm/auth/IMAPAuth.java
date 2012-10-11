@@ -167,9 +167,10 @@ public class IMAPAuth extends GenericRealmAuth
     }
 
     @Override
-    public User load_user( String user_name )
+    public User load_user( String loginName )
     {
-        throw new UnsupportedOperationException("Not supported yet.");
+        User user = new User(loginName, loginName, loginName);
+        return user;
     }
 
     

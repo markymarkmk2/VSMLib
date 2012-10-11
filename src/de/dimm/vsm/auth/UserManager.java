@@ -34,10 +34,8 @@ public class UserManager
 
         u = loadUser( username);
 
-        if (u != null)
-        {
-            userMap.put(username, u);
-        }
+        userMap.put(username, u);
+        
         return u;
     }
 
@@ -60,7 +58,11 @@ public class UserManager
                 if (auth.connect())
                 {
                     User user = auth.load_user(username);
-                    return user;
+                    if (user != null)
+                    {
+                        user.setRole(role);
+                        return user;
+                    }
                 }
             }
         }
@@ -71,14 +73,14 @@ public class UserManager
         return null;
 
     }
-
-    public List<String> getGroupsForUser( String userName )
-    {
-        User u = getUser( userName );
-        if (u != null)
-            return u.getGroups();
-
-        return null;
-    }
+//
+//    public List<String> getGroupsForUser( String userName )
+//    {
+//        User u = getUser( userName );
+//        if (u != null)
+//            return u.getGroups();
+//
+//        return null;
+//    }
 
 }
