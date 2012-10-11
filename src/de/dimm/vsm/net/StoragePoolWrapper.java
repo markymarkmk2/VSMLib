@@ -5,13 +5,14 @@
 
 package de.dimm.vsm.net;
 
+import de.dimm.vsm.net.interfaces.IWrapper;
 import java.io.Serializable;
 
 /**
  *
  * @author Administrator
  */
-public class StoragePoolWrapper implements Serializable
+public class StoragePoolWrapper implements Serializable, IWrapper
 {
     long idx;
     long poolIdx;
@@ -46,28 +47,36 @@ public class StoragePoolWrapper implements Serializable
     }
     
 
-    public long getIdx()
-    {
-        return idx;
-    }
+//    public long getIdx()
+//    {
+//        return idx;
+//    }
 
+    @Override
     public StoragePoolQry getQry()
     {
         return qry;
     }
+    @Override
+    public long getWrapperIdx()
+    {
+        return idx;
+    }
 
 
-
+    @Override
     public long getPoolIdx()
     {
         return poolIdx;
     }
 
+    @Override
     public long getTs()
     {
         return qry.getSnapShotTs();
     }
 
+    @Override
     public boolean isReadOnly()
     {
         return qry.isReadOnly();
