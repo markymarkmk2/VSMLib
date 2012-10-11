@@ -278,6 +278,10 @@ public class HandlePersistRunner
 
     public <T> void em_persist( T o, JDBCEntityManager em ) throws SQLException
     {
+        em_persist(o, em, false);
+    }
+    public <T> void em_persist( T o, JDBCEntityManager em, boolean noCache ) throws SQLException
+    {
         if (exception != null)
         {
             Exception tmp = exception;
@@ -309,7 +313,7 @@ public class HandlePersistRunner
 
 
         // ADD TO CACHE
-        if (em.c_Persist2Cache)
+        if (em.c_Persist2Cache && !noCache)
         {
             //System.out.println("Persisting " + o.getClass().getSimpleName() + ":" + idx);
             Cache c = em.getCache(JDBCEntityManager.OBJECT_CACHE);
