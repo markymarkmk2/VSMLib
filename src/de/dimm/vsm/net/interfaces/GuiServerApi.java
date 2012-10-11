@@ -64,10 +64,11 @@ public interface GuiServerApi
     StoragePoolWrapper openPoolView( StoragePool pool, boolean rdonly,  boolean showDeleted, FileSystemElemNode node, User user );
     List<RemoteFSElem> listDir( StoragePoolWrapper wrapper, RemoteFSElem path ) throws SQLException;
     void closePoolView( StoragePoolWrapper wrapper );
-    boolean removeFSElem( StoragePoolWrapper wrapper, RemoteFSElem path ) throws SQLException, PoolReadOnlyException;
-    boolean undeleteFSElem( StoragePoolWrapper wrapper, RemoteFSElem path ) throws SQLException, PoolReadOnlyException;
-    boolean deleteFSElem( StoragePoolWrapper wrapper, RemoteFSElem path ) throws SQLException, PoolReadOnlyException;
-    boolean restoreFSElem( StoragePoolWrapper wrapper, RemoteFSElem path, String targetIP, int targetPort, String targetPath, int flags, User user ) throws SQLException, PoolReadOnlyException, IOException;
+    boolean removeFSElem( IWrapper wrapper, RemoteFSElem path ) throws SQLException, PoolReadOnlyException;
+    boolean undeleteFSElem( IWrapper wrapper, RemoteFSElem path ) throws SQLException, PoolReadOnlyException;
+    boolean deleteFSElem( IWrapper wrapper, RemoteFSElem path ) throws SQLException, PoolReadOnlyException;
+    boolean restoreFSElem( IWrapper wrapper, RemoteFSElem path, String targetIP, int targetPort, String targetPath, int flags, User user ) throws SQLException, PoolReadOnlyException, IOException;
+    boolean restoreFSElems( IWrapper wrapper, List<RemoteFSElem> path, String targetIP, int targetPort, String targetPath, int flags, User user ) throws SQLException, PoolReadOnlyException, IOException;
 
     public FileSystemElemNode createFileSystemElemNode( StoragePool pool, String path, String type )throws IOException,  PoolReadOnlyException, PathResolveException;
     public FileSystemElemNode createFileSystemElemNode( StoragePoolWrapper wrapper, String path, String type )throws IOException,  PoolReadOnlyException, PathResolveException;
@@ -84,7 +85,8 @@ public interface GuiServerApi
     public SearchStatus getSearchStatus( SearchWrapper wrapper);
     public void updateReadIndex( StoragePool pool );
 
-    boolean restoreFSElem( SearchWrapper wrapper, RemoteFSElem path, String targetIP, int targetPort, String targetPath, int flags, User user ) throws SQLException, PoolReadOnlyException, IOException;
+//    boolean restoreFSElem( IWrapper wrapper, RemoteFSElem path, String targetIP, int targetPort, String targetPath, int flags, User user ) throws SQLException, PoolReadOnlyException, IOException;
+//    boolean restoreFSElems( IWrapper wrapper, List<RemoteFSElem> path, String targetIP, int targetPort, String targetPath, int flags, User user ) throws SQLException, PoolReadOnlyException, IOException;
     public List<RemoteFSElem> listSearchDir( SearchWrapper wrapper, RemoteFSElem path ) throws SQLException;
     public void closeSearch( SearchWrapper wrapper);
 
@@ -107,10 +109,10 @@ public interface GuiServerApi
 
     public long getLogCounter();
 
-    public InputStream openStream( StoragePoolWrapper wrapper, RemoteFSElem path );
-    public InputStream openStream( SearchWrapper wrapper, RemoteFSElem path );
-    public String resolvePath(  SearchWrapper wrapper, RemoteFSElem path ) throws SQLException, PathResolveException;
-    public String resolvePath(  StoragePoolWrapper wrapper, RemoteFSElem path )throws SQLException, PathResolveException;
+    //public InputStream openStream( StoragePoolWrapper wrapper, RemoteFSElem path );
+    public InputStream openStream( IWrapper wrapper, RemoteFSElem path );
+    public String resolvePath(  IWrapper wrapper, RemoteFSElem path ) throws SQLException, PathResolveException;
+    //public String resolvePath(  StoragePoolWrapper wrapper, RemoteFSElem path )throws SQLException, PathResolveException;
 
     public boolean importMMArchiv(HotFolder node, long fromIdx, long tillIdx, boolean withOldJobs, User user) throws Exception;
 
@@ -122,7 +124,5 @@ public interface GuiServerApi
     public boolean isBusyNode( AbstractStorageNode node );
 
     public boolean initNode( AbstractStorageNode node, User user );
-
-
 
 }
