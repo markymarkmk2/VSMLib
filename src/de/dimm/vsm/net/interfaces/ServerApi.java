@@ -25,9 +25,9 @@ public interface ServerApi
 
     Properties get_properties();
     boolean alert( String reason, String msg );
-    boolean alert( List<String> reason, String msg );
+    boolean alert_list( List<String> reason, String msg );
 
 
     boolean cdp_call( CdpEvent ev, CdpTicket ticket );
-    boolean cdp_call( List<CdpEvent> ev, CdpTicket ticket );
+    boolean cdp_call_list( List<CdpEvent> ev, CdpTicket ticket );
 }

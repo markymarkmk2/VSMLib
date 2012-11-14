@@ -21,6 +21,9 @@ public class StoragePoolWrapper implements Serializable, IWrapper
     boolean poolHandlerCreated;
     boolean closeOnUnmount;
 
+//    public StoragePoolWrapper()
+//    {
+//    }
     public StoragePoolWrapper( long idx, long poolIdx, StoragePoolQry qry, boolean _poolHandlerWasCreated )
     {
         this.idx = idx;

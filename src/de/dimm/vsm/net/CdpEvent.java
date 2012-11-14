@@ -45,6 +45,9 @@ public class CdpEvent implements Serializable
     {
         return new CdpEvent(client, path, CDP_SYNC_DIR, elem);
     }
+    public CdpEvent()
+    {
+    }
 
     private CdpEvent(InetAddress client, String path, int mode,  RemoteFSElem e)
     {
