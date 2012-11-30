@@ -49,7 +49,7 @@ public class JDBCLazyList<T> extends LazyList
     }
     
     @Override
-    public synchronized void realize(GenericEntityManager _handler)
+    public void realize(GenericEntityManager _handler)
     {
         synchronized(mtx)
         {

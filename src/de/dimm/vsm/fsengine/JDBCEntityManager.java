@@ -177,6 +177,7 @@ public class JDBCEntityManager implements GenericEntityManager
 
             jdbcConnection.commit();
             jdbcConnection.close();
+            openCommits--;
         }
         LogManager.msg_db(LogManager.LVL_INFO, "ReOpening connection " + this.toString() );
         
@@ -462,9 +463,11 @@ public class JDBCEntityManager implements GenericEntityManager
         {
 
             tx = getConnection().setSavepoint();
+            openCommits++;
         }
         catch (SQLException sQLException)
         {
+            LogManager.err_db( "Error in check_open_transaction", sQLException );
         }
     }
 
@@ -485,6 +488,7 @@ public class JDBCEntityManager implements GenericEntityManager
         try
         {
             jdbcConnection.commit();
+            openCommits--;
         }
         catch (SQLException ex)
         {
@@ -527,6 +531,7 @@ public class JDBCEntityManager implements GenericEntityManager
         statemenCnt = 0;
         tx_commit();
         tx = jdbcConnection.setSavepoint();
+        openCommits++;
     }
 
     public String makeKeyFromObj( long idx , Object o )
@@ -1187,8 +1192,14 @@ public class JDBCEntityManager implements GenericEntityManager
                     if (field.getName().equalsIgnoreCase("attributes"))
                     {
                         FileSystemElemAttributes attr = ((FileSystemElemNode)t).getAttributes();
-                        ps.setObject(fcnt + 1, attr.getIdx());
-
+                        if (attr != null)
+                        {
+                            ps.setObject(fcnt + 1, attr.getIdx());
+                        }
+                        else
+                        {
+                            ps.setObject(fcnt + 1, 0);
+                        }
                     }
                     else
                     {
@@ -1933,6 +1944,12 @@ public class JDBCEntityManager implements GenericEntityManager
         return hitCount;
     }
 
+    public static int getOpenCommits()
+    {
+        return openCommits;
+    }
+    
+
     
     @Override
     public Long getIdx( Object o )
@@ -2208,6 +2225,8 @@ public class JDBCEntityManager implements GenericEntityManager
         }
     }
 
+    static int openCommits = 0;
+
     
     public void tx_commit()
     {
@@ -2219,6 +2238,7 @@ public class JDBCEntityManager implements GenericEntityManager
         try
         {
              jdbcConnection.commit();
+             openCommits--;
              tx = null;
         }
         catch (Exception e)
@@ -2227,6 +2247,7 @@ public class JDBCEntityManager implements GenericEntityManager
             try
             {
                 jdbcConnection.rollback();
+                openCommits--;
             }
             catch (Exception ee)
             {
@@ -2355,6 +2376,7 @@ public class JDBCEntityManager implements GenericEntityManager
         {
             jdbcConnection.commit();
             jdbcConnection.close();
+            openCommits--;
         }
         this.jdbcConnection = conn;
     }
