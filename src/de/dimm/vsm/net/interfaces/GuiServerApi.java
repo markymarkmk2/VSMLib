@@ -124,5 +124,8 @@ public interface GuiServerApi
     public boolean isBusyNode( AbstractStorageNode node );
 
     public boolean initNode( AbstractStorageNode node, User user );
+    
+    public void initCheck( User user, String checkName, Object arg, Object optArg);
+    public List<String> getCheckNames();
 
 }

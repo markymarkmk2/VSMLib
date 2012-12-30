@@ -7,6 +7,7 @@ package de.dimm.vsm.jobs;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 
 /**
  *
@@ -21,12 +22,14 @@ public class InteractionEntry implements Serializable
         OK,  // == YES
         OK_CANCEL,  // == YES_NO
         OK_RETRY_CANCEL,
+        SELECT,
     }
     public enum INTERACTION_ANSWER
     {
         OK, // == YES
         CANCEL, // == NO
         RETRY,
+        SELECT,
     }
    
     public enum SEVERITY
@@ -35,6 +38,9 @@ public class InteractionEntry implements Serializable
         WARN,
         ERROR
     }
+    List<String> selectList;
+    int defaultSelect;
+    int userSelect;
 
     INTERACTION_TYPE interactionType;
     String text;
@@ -56,6 +62,19 @@ public class InteractionEntry implements Serializable
         this.severity = severity;
         this.defaultAnswer = defaultAnswer;
     }
+    public InteractionEntry( String text, String shortText, Date created, int timeout_s, List<String> selectList, int defaultSelect)
+    {
+        this.interactionType = INTERACTION_TYPE.SELECT;
+        this.text = text;
+        this.shortText = shortText;
+        this.created = created;
+        this.timeout_s = timeout_s;
+        this.severity = SEVERITY.INFO;
+        this.defaultAnswer = INTERACTION_ANSWER.SELECT;
+        this.selectList = selectList;
+        this.defaultSelect = defaultSelect;
+    }
+
 
 
     public String getText()
@@ -109,6 +128,16 @@ public class InteractionEntry implements Serializable
         return userAnswer;
     }
     
+    public void setSelect( int s )
+    {
+        userAnswer = INTERACTION_ANSWER.SELECT;
+        userSelect = s;
+        wasAnswered = true;
+    }
+    public int getUserSelect()
+    {
+        return userSelect;
+    }
 
     
 }

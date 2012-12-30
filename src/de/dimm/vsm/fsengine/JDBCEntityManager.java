@@ -13,6 +13,7 @@ import de.dimm.vsm.records.FileSystemElemNode;
 import de.dimm.vsm.records.StoragePool;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -32,8 +33,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.Map;
 import javax.persistence.CascadeType;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.FetchType;
@@ -1179,11 +1179,11 @@ public class JDBCEntityManager implements GenericEntityManager
                 {
                     continue;
                 }
-                if (field.isAnnotationPresent(Id.class))
+                if (existsAnnotation(field, Id.class))
                 {
                     continue;
                 }
-                if (field.isAnnotationPresent(OneToMany.class))
+                if (existsAnnotation(field, OneToMany.class))
                 {
                     continue;
                 }
@@ -1288,14 +1288,14 @@ public class JDBCEntityManager implements GenericEntityManager
                 {
                     continue;
                 }
-                if (field.isAnnotationPresent(OneToMany.class))
+                if (existsAnnotation(field, OneToMany.class))
                 {
                     continue;
                 }
                 try
                 {
                     // NEW INDEX
-                    if (field.isAnnotationPresent(Id.class))
+                    if (existsAnnotation(field, Id.class))
                     {
                         field.setAccessible(true);
                         field.set(o, newIndex);
@@ -1436,6 +1436,48 @@ public class JDBCEntityManager implements GenericEntityManager
         check_commit_transaction();
 
     }
+    
+    class AnnotationEntry 
+    {
+        Annotation ann;
+    }
+    String getKey( Field field, Class<?> clazz) {
+        String key = field.getDeclaringClass().getSimpleName() + "." +  field.getName() + "." + clazz.getSimpleName();
+        return key;
+    }
+            
+    Map<String,AnnotationEntry> annotationMap = new HashMap<>();
+    AnnotationEntry getAnnotationEntry( Field field, Class<?> clazz) {
+        String key = getKey( field, clazz);
+        return annotationMap.get(key);        
+    }
+    boolean existsAnnotation( Field field, Class<? extends Annotation> clazz) {
+         AnnotationEntry entry = getAnnotationEntry(field, clazz);
+         if (entry == null) {
+             entry = new AnnotationEntry();
+             if (field.isAnnotationPresent(clazz)) {
+                 Annotation ann = field.getAnnotation(clazz);
+                 entry.ann = ann;
+             }
+             String key = getKey( field, clazz);
+             annotationMap.put(key, entry);
+         }
+         return (entry.ann != null);
+    }
+    private <T extends Annotation> T  getAnnotation( Field field, Class<T> clazz) {
+         AnnotationEntry entry = getAnnotationEntry(field, clazz);
+         if (entry == null) {
+             entry = new AnnotationEntry();
+             if (field.isAnnotationPresent(clazz)) {
+                 Annotation ann = field.getAnnotation(clazz);
+                 entry.ann = ann;
+             }
+             String key = getKey( field, clazz);
+             annotationMap.put(key, entry);
+         }
+         return (T)entry.ann;
+    }
+
    
     @Override
     public void em_remove( Object o ) throws SQLException
@@ -1462,9 +1504,9 @@ public class JDBCEntityManager implements GenericEntityManager
             Field field = fields[i];
             boolean remove_child = false;
             List childs = null;
-            if (field.isAnnotationPresent(OneToMany.class))
+            if (existsAnnotation(field, OneToMany.class))
             {
-                OneToMany otm = field.getAnnotation(OneToMany.class);
+                OneToMany otm = getAnnotation(field, OneToMany.class);
                 CascadeType[] ct = otm.cascade();
                 for (int j = 0; j < ct.length; j++)
                 {
@@ -1534,9 +1576,9 @@ public class JDBCEntityManager implements GenericEntityManager
             Field field = fields[i];
             boolean remove_child = false;
             List childs = null;
-            if (field.isAnnotationPresent(OneToOne.class))
+            if (existsAnnotation(field, OneToOne.class))
             {
-                OneToOne otm = field.getAnnotation(OneToOne.class);
+                OneToOne otm = getAnnotation(field, OneToOne.class);
                 CascadeType[] ct = otm.cascade();
                 for (int j = 0; j < ct.length; j++)
                 {
@@ -1605,7 +1647,7 @@ public class JDBCEntityManager implements GenericEntityManager
     OtmMap buildOtmMap( String key, Field elem, Object o ) throws NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException
     {
         OtmMap map = null;
-        OneToMany otm = elem.getAnnotation(OneToMany.class);
+        OneToMany otm = getAnnotation(elem, OneToMany.class);
         if (otm != null)
         {
             Method m = o.getClass().getMethod("getIdx", (Class[]) null);
@@ -1824,7 +1866,7 @@ public class JDBCEntityManager implements GenericEntityManager
             {
                 continue;
             }
-            if (field.isAnnotationPresent(OneToMany.class))
+            if (existsAnnotation(field, OneToMany.class))
             {
                 continue;
             }
@@ -1860,11 +1902,11 @@ public class JDBCEntityManager implements GenericEntityManager
     String getFieldName( Field field )
     {
         String f = field.getName();
-        if (field.isAnnotationPresent(ManyToOne.class))
+        if (existsAnnotation(field, ManyToOne.class))
         {
             f += "_idx";
         }
-        else if(field.isAnnotationPresent(OneToOne.class))
+        else if(existsAnnotation(field, OneToOne.class))
         {
             f += "_idx";
         }
@@ -1881,7 +1923,7 @@ public class JDBCEntityManager implements GenericEntityManager
         if (o == null)
             return null;
         
-        if (field.isAnnotationPresent(ManyToOne.class))
+        if (existsAnnotation(field, ManyToOne.class))
         {
             Object linkObjIdx = getObjectIdx(field, o);
             if (linkObjIdx == null)
@@ -1890,7 +1932,7 @@ public class JDBCEntityManager implements GenericEntityManager
             }
             return linkObjIdx.toString();
         }
-        if (field.isAnnotationPresent(OneToOne.class))
+        if (existsAnnotation(field, OneToOne.class))
         {
             Long l = getObjectIdx(field, o);
             if (l == null)
@@ -1990,12 +2032,12 @@ public class JDBCEntityManager implements GenericEntityManager
             {
                 continue;
             }
-            if (field.isAnnotationPresent(Id.class))
+            if (existsAnnotation(field, Id.class))
             {
                 keys[0] = field.getName();
                 //                continue;
             }
-            if (field.isAnnotationPresent(OneToMany.class))
+            if (existsAnnotation(field, OneToMany.class))
             {
                 continue;
             }
@@ -2084,7 +2126,7 @@ public class JDBCEntityManager implements GenericEntityManager
         }
         final String name = field.getName();
 
-        if (field.isAnnotationPresent(Transient.class) && !name.equals("attributes"))
+        if (existsAnnotation(field, Transient.class) && !name.equals("attributes"))
         {
             return true;
         }
@@ -2121,12 +2163,12 @@ public class JDBCEntityManager implements GenericEntityManager
             {
                 continue;
             }
-            if (field.isAnnotationPresent(Id.class))
+            if (existsAnnotation(field, Id.class))
             {
                 keys[0] = field.getName();
                 continue;
             }
-            if (field.isAnnotationPresent(OneToMany.class))
+            if (existsAnnotation(field, OneToMany.class))
             {
                 continue;
             }
