@@ -1446,7 +1446,7 @@ public class JDBCEntityManager implements GenericEntityManager
         return key;
     }
             
-    Map<String,AnnotationEntry> annotationMap = new HashMap<>();
+    Map<String,AnnotationEntry> annotationMap = new HashMap<String,AnnotationEntry>();
     AnnotationEntry getAnnotationEntry( Field field, Class<?> clazz) {
         String key = getKey( field, clazz);
         return annotationMap.get(key);        

@@ -32,5 +32,5 @@ public interface ICheck {
 
     public String getStatisticStr();
 
-  
+
 }
