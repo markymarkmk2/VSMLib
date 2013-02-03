@@ -22,10 +22,10 @@ import java.util.List;
  */
 public class StoragePoolQry implements Serializable
 {
-    User user;
+    private User user;
     private boolean readOnly;
     private long snapShotTs;
-    ArrayList<SearchEntry> slist;
+    private ArrayList<SearchEntry> slist;
     boolean showDeleted;
     boolean useMappingFilter = true; // DEFAULT: USE MAPPING FILTER
     
@@ -180,6 +180,15 @@ public class StoragePoolQry implements Serializable
         }
         return false;
     }
+
+    public boolean isUseMappingFilter() {
+        return useMappingFilter && user != null && user.getFsMapper() != null && !user.getFsMapper().getVsmList().isEmpty();
+    }
+
+    public User getUser() {
+        return user;
+    }
+    
     public boolean matchesUser( FileSystemElemNode node, FileSystemElemAttributes attr, UserManager userManager )
     {
         if (useMappingFilter && !isAllowedByVsmMapping(node))
@@ -204,6 +213,14 @@ public class StoragePoolQry implements Serializable
 
 
             List<VSMAclEntry> acls = ac.getAcl();
+            
+            // Nix parametriert -> alles erlaubt
+            
+            if (acls.size() == 0) 
+                return true;
+            
+            boolean existsAllow = false;
+            
             for (int i = 0; i < acls.size(); i++)
             {
                 VSMAclEntry vSMAclEntry = acls.get(i);
@@ -220,6 +237,10 @@ public class StoragePoolQry implements Serializable
                     if (!vSMAclEntry.permissions().contains(AclEntryPermission.READ_DATA))
                         continue;
                 }
+                
+                // Wenn wir einen Allow finden, dann ist default allow == false
+                if (isAccessAllow(vSMAclEntry))
+                    existsAllow = true;
 
                 if (vSMAclEntry.isGroup())
                 {
@@ -283,8 +304,11 @@ public class StoragePoolQry implements Serializable
                     }
                 }
             }
-            return false;
+            // Nichts gefunden:
+            // Wenn ein einziges allow parametriert ist, dann default == false, ansonsten -> nix verboten -> alles erlaubt
+            return existsAllow ? false : true;
         }
+        
         // HERE WE GO IF NO ACL
         // FIRST POSIX TODO: CHECK IF user IS POSIX USER ON THIS MACHINE
         if (restrictByPosix(user))

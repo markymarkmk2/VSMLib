@@ -6,13 +6,17 @@
 package de.dimm.vsm.auth;
 
 import de.dimm.vsm.fsengine.ArrayLazyList;
+import de.dimm.vsm.log.LogManager;
 import de.dimm.vsm.net.RemoteFSElem;
+import de.dimm.vsm.records.FileSystemElemAttributes;
 import de.dimm.vsm.records.FileSystemElemNode;
 import de.dimm.vsm.records.Role;
 import de.dimm.vsm.records.RoleOption;
 import java.io.File;
 import java.io.FileReader;
 import java.io.Serializable;
+import java.lang.String;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -141,6 +145,9 @@ public class User implements Serializable
 
             return new ArrayList<RemoteFSElem>(result.values());
         }
+
+        
+
     }
 
     public class  VsmFsEntry  implements Serializable
@@ -183,6 +190,12 @@ public class User implements Serializable
             }
             return false;
         }
+
+        @Override
+        public String toString() {
+            return vPath + " -> " + uPath;
+        }
+        
 
        
     }
