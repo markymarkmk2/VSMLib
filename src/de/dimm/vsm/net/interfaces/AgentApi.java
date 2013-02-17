@@ -48,11 +48,14 @@ public interface AgentApi
     public static final int FL_TRUNC = 2;
     public static final int FL_CREATE = 4;
 
+    public static final int LR_LISTMOUNTS = 1;
+
     public static final String OP_FORCE_RSRC = "OP_FORCE_RSRC";
     
     ArrayList<RemoteFSElem> list_dir( RemoteFSElem dir, boolean lazyAclInfo );
     String readAclInfo( RemoteFSElem dir );
     ArrayList<RemoteFSElem> list_roots( );
+    ArrayList<RemoteFSElem> list_roots( int mode );
     boolean create_dir( RemoteFSElem dir ) throws IOException;
 
     RemoteFSElemWrapper open_data(RemoteFSElem file, int flags ) throws IOException;
