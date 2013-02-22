@@ -21,6 +21,7 @@ import de.dimm.vsm.records.ArchiveJob;
 import de.dimm.vsm.records.FileSystemElemNode;
 import de.dimm.vsm.records.HotFolder;
 import de.dimm.vsm.records.MessageLog;
+import de.dimm.vsm.records.MountEntry;
 import de.dimm.vsm.records.Schedule;
 import de.dimm.vsm.records.StoragePool;
 import de.dimm.vsm.tasks.TaskEntry;
@@ -127,5 +128,9 @@ public interface GuiServerApi
     
     public void initCheck( User user, String checkName, Object arg, Object optArg);
     public List<String> getCheckNames(Class<?> clazz);
-
+    public List<MountEntry> getAllMountEntries();
+    public List<MountEntry> getMountedMountEntries();
+    public void unMountEntry( MountEntry mountEntry);
+    public StoragePoolWrapper mountEntry( User user,  MountEntry mountEntry);
+    
 }

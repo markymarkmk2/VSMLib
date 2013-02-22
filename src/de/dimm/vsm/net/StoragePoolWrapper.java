@@ -20,6 +20,7 @@ public class StoragePoolWrapper implements Serializable, IWrapper
     boolean physicallyMounted;
     boolean poolHandlerCreated;
     boolean closeOnUnmount;
+    String mountEntryIdx;
 
 //    public StoragePoolWrapper()
 //    {
@@ -112,6 +113,17 @@ public class StoragePoolWrapper implements Serializable, IWrapper
     {
         this.physicallyMounted = physicallyMounted;
     }
+
+    public void setMountEntryKey( String mountEntryIdx )
+    {
+        this.mountEntryIdx = mountEntryIdx;
+    }
+
+    public String getMountEntryKey()
+    {
+        return mountEntryIdx;
+    }
+    
     
 
 }
