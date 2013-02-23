@@ -134,7 +134,7 @@ public class User implements Serializable
 
                         RemoteFSElem newElem;
                         if  (remoteFSElem.getMtimeMs() == 0)
-                            newElem = new RemoteFSElem(path, FileSystemElemNode.FT_DIR, System.currentTimeMillis(), System.currentTimeMillis(), System.currentTimeMillis(), 0, 0 );
+                            newElem = RemoteFSElem.createDir(path );
                         else
                             newElem = new RemoteFSElem(path, FileSystemElemNode.FT_DIR, remoteFSElem.getMtimeMs(), remoteFSElem.getCtimeMs(), remoteFSElem.getAtimeMs(), 0, 0 );
                         
