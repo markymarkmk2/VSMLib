@@ -598,151 +598,155 @@ public class JDBCEntityManager implements GenericEntityManager
                     //                        linkSetter.invoke(lastObjectToFill, objectToFill);
                 }
             }
-            FieldEntry fe = getClassforIgnCaseField(objectToFill.getClass().getSimpleName(), name);
+            final FieldEntry fe = getClassforIgnCaseField(objectToFill.getClass().getSimpleName(), name);
             //String methodName = "set" + Character.toUpperCase(name.charAt(0)) + fe.name.substring(1);
             try
             {
-                Field setter = fe.field;
-                boolean ac = setter.isAccessible();
-                setter.setAccessible(true);
-
-                if (name.equalsIgnoreCase("idx") && (fe.field.getDeclaringClass() == ret_val.getClass()))
+                synchronized(this)
                 {
-                    // SET IDX
-                    Long idx = (Long) rs.getObject(i);
-                    setter.set(objectToFill, idx);
+                    final Field setter = fe.field;
 
-                    // AND ADD TO CACHE IF NECESSARY
-                    if (c_Create2Cache)
+                    boolean ac = setter.isAccessible();
+                    setter.setAccessible(true);
+
+                    if (name.equalsIgnoreCase("idx") && (fe.field.getDeclaringClass() == ret_val.getClass()))
                     {
-                        Cache c = getCache(OBJECT_CACHE);
-                        String key = makeKeyFromObj( idx, objectToFill  );
-                        if (objectToFill == null)
-                            throw new IOException("Null??");
+                        // SET IDX
+                        Long idx = (Long) rs.getObject(i);
+                        setter.set(objectToFill, idx);
 
-                        c.putIfAbsent( new Element(key, objectToFill));
-                    }
-                }
-                //System.out.println(fe.clazz.getName());
-                else if(fe.clazz.getName().equals("boolean"))
-                {
-                    setter.setBoolean(objectToFill, rs.getBoolean(i));
-                }
-                else if(fe.clazz.getName().equals("char"))
-                {
-                    String s = rs.getString(i);
-                    if (s.length() > 0)
-                        setter.setChar(objectToFill, s.charAt(0));
-                    else
-                        setter.setChar(objectToFill, (char)0);
-                }
-                else if(name.equalsIgnoreCase("XATTRIBUTE"))
-                {
-                    // DECOUPLE DATA FROM DB-CACHE
-                    String s = copy(rs.getString(i));
-                    setter.set(objectToFill, s);
-                }
-                else if(fe.clazz.getSimpleName().equals("RemoteFSElem") )
-                {
-                    Blob blob = (Blob)rs.getObject(i);
-                    if (blob != null)
-                    {
-                        InputStream is = blob.getBinaryStream();
-                        try
+                        // AND ADD TO CACHE IF NECESSARY
+                        if (c_Create2Cache)
                         {
-                            XStream xs = new XStream();
-                            Object so = xs.fromXML(is);
-                            setter.set(objectToFill, so);
+                            Cache c = getCache(OBJECT_CACHE);
+                            String key = makeKeyFromObj( idx, objectToFill  );
+                            if (objectToFill == null)
+                                throw new IOException("Null??");
+
+                            c.putIfAbsent( new Element(key, objectToFill));
                         }
-                        catch (Exception exception)
+                    }
+                    //System.out.println(fe.clazz.getName());
+                    else if(fe.clazz.getName().equals("boolean"))
+                    {
+                        setter.setBoolean(objectToFill, rs.getBoolean(i));
+                    }
+                    else if(fe.clazz.getName().equals("char"))
+                    {
+                        String s = rs.getString(i);
+                        if (s.length() > 0)
+                            setter.setChar(objectToFill, s.charAt(0));
+                        else
+                            setter.setChar(objectToFill, (char)0);
+                    }
+                    else if(name.equalsIgnoreCase("XATTRIBUTE"))
+                    {
+                        // DECOUPLE DATA FROM DB-CACHE
+                        String s = copy(rs.getString(i));
+                        setter.set(objectToFill, s);
+                    }
+                    else if(fe.clazz.getSimpleName().equals("RemoteFSElem") )
+                    {
+                        Blob blob = (Blob)rs.getObject(i);
+                        if (blob != null)
                         {
-                            LogManager.err_db("Cannot deserialize Object " + fe.clazz.getSimpleName() + ": " + exception.getMessage());
+                            InputStream is = blob.getBinaryStream();
+                            try
+                            {
+                                XStream xs = new XStream();
+                                Object so = xs.fromXML(is);
+                                setter.set(objectToFill, so);
+                            }
+                            catch (Exception exception)
+                            {
+                                LogManager.err_db("Cannot deserialize Object " + fe.clazz.getSimpleName() + ": " + exception.getMessage());
+                                setter.set(objectToFill, null);
+                            }
+                        }
+                        else
+                        {
                             setter.set(objectToFill, null);
                         }
                     }
-                    else
+                    else if (fe.clazz.getName().indexOf(".dimm.") >= 0)
                     {
-                        setter.set(objectToFill, null);
-                    }
-                }
-                else if (fe.clazz.getName().indexOf(".dimm.") >= 0)
-                {
-                    Long idx = (Long) rs.getObject(i);
-                    Object newObject = null;
-                    if (idx == null)
-                    {
-                        setter.set(objectToFill, newObject);
-                    }
-                    else if (ret_val != null && (fe.clazz == ret_val.getClass()) && idx.equals(getIdx(ret_val)))
-                    {
-                        // SET OURSELVES TO RELATED OBJECTS
-                        setter.set(objectToFill, ret_val);
-                    }
-                    else
-                    {
-                        Object g = setter.get(objectToFill);
-                        if (g == null || !getIdx(g).equals(idx))
+                        Long idx = (Long) rs.getObject(i);
+                        Object newObject = null;
+                        if (idx == null)
                         {
-                            Element elem = null;
-
-                            if( c_CreateSubObject2Cache)
-                            {
-                                Cache c = getCache(OBJECT_CACHE);
-                                String key = makeKeyFromStr( idx, fe.clazz.getSimpleName() );
-                                elem = c.get(key);
-                                if (elem != null)
-                                {
-                                    incHitCount();
-                                    newObject = elem.getValue();
-                                    //updateLazyListHandlers(newObject);
-                                }
-                            }
-
-                            if (elem == null)
-                            {
-                                find_stack_count++;
-                                if (find_stack_count > 30)
-                                {
-                                    System.out.println("Find stack: " + find_stack_count + " " + fe.clazz.getSimpleName() + idx);
-                                }
-                                if (find_stack_count < MAX_PS)
-                                {
-                                    newObject = em_find(fe.clazz, idx);
-                                }
-                                find_stack_count--;
-                            }
-                            // TODO: FETCH N
-                            setter.setAccessible(true); // SET AGAIN, MAYBE WE HAVE RECURSED AND RESET ALREADY
                             setter.set(objectToFill, newObject);
                         }
+                        else if (ret_val != null && (fe.clazz == ret_val.getClass()) && idx.equals(getIdx(ret_val)))
+                        {
+                            // SET OURSELVES TO RELATED OBJECTS
+                            setter.set(objectToFill, ret_val);
+                        }
+                        else
+                        {
+                            Object g = setter.get(objectToFill);
+                            if (g == null || !getIdx(g).equals(idx))
+                            {
+                                Element elem = null;
+
+                                if( c_CreateSubObject2Cache)
+                                {
+                                    Cache c = getCache(OBJECT_CACHE);
+                                    String key = makeKeyFromStr( idx, fe.clazz.getSimpleName() );
+                                    elem = c.get(key);
+                                    if (elem != null)
+                                    {
+                                        incHitCount();
+                                        newObject = elem.getValue();
+                                        //updateLazyListHandlers(newObject);
+                                    }
+                                }
+
+                                if (elem == null)
+                                {
+                                    find_stack_count++;
+                                    if (find_stack_count > 30)
+                                    {
+                                        System.out.println("Find stack: " + find_stack_count + " " + fe.clazz.getSimpleName() + idx);
+                                    }
+                                    if (find_stack_count < MAX_PS)
+                                    {
+                                        newObject = em_find(fe.clazz, idx);
+                                    }
+                                    find_stack_count--;
+                                }
+                                // TODO: FETCH N
+                                setter.setAccessible(true); // SET AGAIN, MAYBE WE HAVE RECURSED AND RESET ALREADY
+                                setter.set(objectToFill, newObject);
+                            }
+                        }
                     }
+                    else if (fe.clazz.getSimpleName().equals("Date"))
+                    {
+                        setter.set(objectToFill, rs.getTimestamp(i));
+                    }
+                    else
+                    {
+                        Object val = rs.getObject(i);
+                        // DECOUPLE DATA FROM DB-CACHE
+                        if (val instanceof String)
+                            val = copy(val.toString());
+
+                        setter.set(objectToFill, val);
+                        //                    if (name.toUpperCase().equals("IDX") && val instanceof Long)
+                        //                    {
+                        //                        // ADD OBJECT WITH INDEX TO CACHE
+                        //                        Cache c = getCache(OBJECT_CACHE);
+                        //                        Long idx = (Long)val;
+                        //                        String key = idx.toString() + objectToFill.getClass().getSimpleName();
+                        //                        if (c.get(key) != null)
+                        //                        {
+                        //                            System.out.println("Found object in cache, shouldnt be there!" );
+                        //                        }
+                        //                        c.put( new Element( key, objectToFill));
+                        //                    }
+                    }
+                    setter.setAccessible(ac);
                 }
-                else if (fe.clazz.getSimpleName().equals("Date"))
-                {
-                    setter.set(objectToFill, rs.getTimestamp(i));
-                }
-                else
-                {
-                    Object val = rs.getObject(i);
-                    // DECOUPLE DATA FROM DB-CACHE
-                    if (val instanceof String)
-                        val = copy(val.toString());
-                    
-                    setter.set(objectToFill, val);
-                    //                    if (name.toUpperCase().equals("IDX") && val instanceof Long)
-                    //                    {
-                    //                        // ADD OBJECT WITH INDEX TO CACHE
-                    //                        Cache c = getCache(OBJECT_CACHE);
-                    //                        Long idx = (Long)val;
-                    //                        String key = idx.toString() + objectToFill.getClass().getSimpleName();
-                    //                        if (c.get(key) != null)
-                    //                        {
-                    //                            System.out.println("Found object in cache, shouldnt be there!" );
-                    //                        }
-                    //                        c.put( new Element( key, objectToFill));
-                    //                    }
-                }
-                setter.setAccessible(ac);
             }
             catch (Exception exc)
             {

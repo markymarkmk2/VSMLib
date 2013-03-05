@@ -51,8 +51,8 @@ public interface GuiServerApi
 
     boolean startBackup( Schedule sched, User user ) throws Exception;
     public boolean abortBackup( final Schedule sched );
-    StoragePoolWrapper mountVolume( String agentIp, int agentPort, StoragePool pool, Date timestamp, String subPath, User user, String drive );
-    public StoragePoolWrapper mountVolume( final String agentIp, final int agentPort, final StoragePoolWrapper poolWrapper, final String drive );
+    StoragePoolWrapper mountVolume( String agentIp, int agentPort, StoragePool pool, Date timestamp, String subPath, User user, String drive ) throws IOException;
+    public StoragePoolWrapper mountVolume( final String agentIp, final int agentPort, final StoragePoolWrapper poolWrapper, final String drive ) throws IOException;
     boolean unmountVolume( StoragePoolWrapper wrapper );
     boolean unmountAllVolumes();
     StoragePoolWrapper getMounted( String agentIp, int agentPort, StoragePool pool );
@@ -131,6 +131,6 @@ public interface GuiServerApi
     public List<MountEntry> getAllMountEntries();
     public List<MountEntry> getMountedMountEntries();
     public void unMountEntry( MountEntry mountEntry);
-    public StoragePoolWrapper mountEntry( User user,  MountEntry mountEntry);
+    public StoragePoolWrapper mountEntry( User user,  MountEntry mountEntry) throws IOException;
     
 }

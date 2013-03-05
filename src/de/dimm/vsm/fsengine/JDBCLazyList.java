@@ -34,45 +34,41 @@ public class JDBCLazyList<T> extends LazyList
     {
         super(cl, fieldname, ownerIdx);
 
-        setDBLink(cl, fieldname, ownerIdx);
+        this.ownerIdx = ownerIdx;
+        this.fieldname = fieldname;
+        this.realList = null;
+        this.cl = cl;
     }
 
-    public final void setDBLink(Class<T> cl, String fieldname, long ownerIdx)
-    {
-        synchronized(mtx)
-        {
-            this.ownerIdx = ownerIdx;
-            this.fieldname = fieldname;
-            this.realList = null;
-            this.cl = cl;
-        }
-    }
+    
     
     @Override
     public void realize(GenericEntityManager _handler)
     {
-        synchronized(mtx)
+        ResultSet rs = null;
+        if (!(_handler instanceof JDBCEntityManager))
         {
-            if (realList != null)
+            throw new RuntimeException( "Unsupported EntityManager " + _handler.toString());
+        }
+        JDBCEntityManager handler = (JDBCEntityManager)_handler;
+
+        List<T> newList = new ArrayList<>();
+
+        String statementName = cl.getSimpleName() + fieldname;
+
+        int pscount = 0;
+        PreparedStatement ps = null;
+
+        try
+        {
+            synchronized(mtx)
             {
-                return;
-            }
+                if (realList != null)
+                {
+                    return;
+                }
 
-            if (!(_handler instanceof JDBCEntityManager))
-            {
-                throw new RuntimeException( "Unsupported EntityManager " + _handler.toString());
-            }
-            JDBCEntityManager handler = (JDBCEntityManager)_handler;
 
-            List<T> newList = new ArrayList<T>();
-
-            String statementName = cl.getSimpleName() + fieldname;
-
-            int pscount = 0;
-            PreparedStatement ps = null;
-            ResultSet rs = null;
-            try
-            {
                 // REGISTER PREPARED STATEMENT FOR THIS CLASS AND QUERY
                 pscount = handler.addOpenLinkSet(statementName);
 
@@ -139,24 +135,25 @@ public class JDBCLazyList<T> extends LazyList
                 //System.out.println("Loaded " + realList.size() + " entries");
 
             }
-            catch (Exception sQLException)
+        }
+        catch (Exception sQLException)
+        {
+            LogManager.err_db("Error resolving LayzyList for " + statementName + ownerIdx , sQLException);
+            //sQLException.printStackTrace();
+        }
+        finally
+        {
+            try
             {
-                LogManager.err_db("Error resolving LayzyList for " + statementName + ownerIdx , sQLException);
+                if (rs != null)
+                {
+                    rs.close();
+                }
             }
-            finally
+            catch (SQLException sQLException)
             {
-                try
-                {
-                    if (rs != null)
-                    {
-                        rs.close();
-                    }
-                }
-                catch (SQLException sQLException)
-                {
-                }
-                handler.removeOpenLinkSet(statementName, pscount);
             }
+            handler.removeOpenLinkSet(statementName, pscount);
         }
     }
 }
