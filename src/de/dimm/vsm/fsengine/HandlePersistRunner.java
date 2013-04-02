@@ -13,7 +13,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
-import net.sf.ehcache.Cache;
 import net.sf.ehcache.Element;
 
 abstract class HandleEntityElem
@@ -316,7 +315,7 @@ public class HandlePersistRunner
         if (em.c_Persist2Cache && !noCache)
         {
             //System.out.println("Persisting " + o.getClass().getSimpleName() + ":" + idx);
-            Cache c = em.getCache(JDBCEntityManager.OBJECT_CACHE);
+            ConcurrentCache c = em.getCache(JDBCEntityManager.OBJECT_CACHE);
             String key = em.makeKeyFromObj( newIndex, o );
             c.putIfAbsent(new Element(key, o));
         }
@@ -341,7 +340,7 @@ public class HandlePersistRunner
             long idx = idx = em.getIdx(t);
             String key = em.makeKeyFromObj( idx, t );
             // UPDATE CACHE IF IT IS IN CACHE
-            Cache c = em.getCache(JDBCEntityManager.OBJECT_CACHE);
+            ConcurrentCache c = em.getCache(JDBCEntityManager.OBJECT_CACHE);
 
             // NO PUT IF ABSENT,WE COMPARE VALUE
             Element cachedObject = c.get(key);
