@@ -19,7 +19,7 @@ public class PrefilledLazyList<T> extends JDBCLazyList
     public PrefilledLazyList( GenericEntityManager _handler, Class<T> cl, String fieldname, long ownerIdx)
     {
         super(cl, fieldname, ownerIdx);
-        realize( _handler );
+        realizeAndSet( _handler );
     }
 
     

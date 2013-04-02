@@ -618,7 +618,7 @@ public class JDBCEntityManager implements GenericEntityManager
                         // AND ADD TO CACHE IF NECESSARY
                         if (c_Create2Cache)
                         {
-                            Cache c = getCache(OBJECT_CACHE);
+                            ConcurrentCache c = getCache(OBJECT_CACHE);
                             String key = makeKeyFromObj( idx, objectToFill  );
                             if (objectToFill == null)
                                 throw new IOException("Null??");
@@ -690,7 +690,7 @@ public class JDBCEntityManager implements GenericEntityManager
 
                                 if( c_CreateSubObject2Cache)
                                 {
-                                    Cache c = getCache(OBJECT_CACHE);
+                                    ConcurrentCache c = getCache(OBJECT_CACHE);
                                     String key = makeKeyFromStr( idx, fe.clazz.getSimpleName() );
                                     elem = c.get(key);
                                     if (elem != null)
@@ -975,7 +975,7 @@ public class JDBCEntityManager implements GenericEntityManager
                 {
                     if (c_CreateSingleQuery2Cache)
                     {
-                        Cache c = getCache(OBJECT_CACHE);
+                        ConcurrentCache c = getCache(OBJECT_CACHE);
                         String key = makeKeyFromStr( getIdx(t), aClass.getSimpleName());
                         if (t == null)
                             throw new SQLException("Null??");
@@ -1010,7 +1010,7 @@ public class JDBCEntityManager implements GenericEntityManager
         long idx = getIdx(o);
         String key = makeKeyFromStr( idx, o.getClass().getSimpleName() );
 
-        Cache c = getCache(OBJECT_CACHE);
+        ConcurrentCache c = getCache(OBJECT_CACHE);
         c.remove(key);
         
         Field[] fields = o.getClass().getDeclaredFields();
@@ -1071,7 +1071,6 @@ public class JDBCEntityManager implements GenericEntityManager
         }
     }
  * */
-
     
     @Override
     public <T> T em_find( Class<T> t, long idx )
@@ -1082,8 +1081,8 @@ public class JDBCEntityManager implements GenericEntityManager
         {
             String key = makeKeyFromStr( idx, t.getSimpleName() );
 
-            Cache c = getCache(OBJECT_CACHE);
-            Element cachedObject = c.get(key);
+            ConcurrentCache cache = getCache(OBJECT_CACHE);
+            Element cachedObject = cache.get(key);
             if (cachedObject != null)
             {
                 incHitCount();
@@ -1111,7 +1110,9 @@ public class JDBCEntityManager implements GenericEntityManager
             
             removeOpenSet(t.getSimpleName(), pscount);
             Element el = new Element(key, ret_val);
-            c.put(el);
+            // Im Cache ist eine singuläre instanz, zugruiff muss threadsafe sein
+            cache.put(el);
+
             return ret_val;
         }
         catch (Exception e)
@@ -1144,7 +1145,7 @@ public class JDBCEntityManager implements GenericEntityManager
             long idx = getIdx(t);
             String key = makeKeyFromObj( idx, t );
             // UPDATE CACHE IF IT IS IN CACHE
-            Cache c = getCache(OBJECT_CACHE);
+            ConcurrentCache c = getCache(OBJECT_CACHE);
 
             // NO PUT IF ABSENT,WE COMPARE VALUE
             Element cachedObject = c.get(key);
@@ -1266,7 +1267,7 @@ public class JDBCEntityManager implements GenericEntityManager
         {
             long idx = getIdx(o);
             //System.out.println("Persisting " + o.getClass().getSimpleName() + ":" + idx);
-            Cache c = getCache(OBJECT_CACHE);
+            ConcurrentCache c = getCache(OBJECT_CACHE);
             String key = makeKeyFromObj( idx, o );
             if (o == null)
                 throw new SQLException("Null??");
@@ -1568,7 +1569,7 @@ public class JDBCEntityManager implements GenericEntityManager
 //        conn.commit();
 
         // UPDATE CACHE
-        Cache c = getCache(OBJECT_CACHE);
+        ConcurrentCache c = getCache(OBJECT_CACHE);
         String key = makeKeyFromObj( idx, o );
         Element cachedObject = c.get(key);
         if (cachedObject != null)
@@ -1719,7 +1720,7 @@ public class JDBCEntityManager implements GenericEntityManager
                             }
                         }
                        JDBCLazyList ll = new JDBCLazyList(type, field, ret_val_idx/*, this*/);
-                       ll.realize(this);
+                       ll.realizeAndSet(this);
                        elem.set(o, ll);
                     }
                     if (map.otmtype.equals(OTM_LAZY))
@@ -1770,10 +1771,9 @@ public class JDBCEntityManager implements GenericEntityManager
             System.out.println("Exception during cache object clear:" + e.getMessage());
         }
     }
-
-    public Cache getCache( String id )
-    {
-        
+   
+    public ConcurrentCache getCache( String id )
+    {        
         CacheManager.create();
         if (!CacheManager.getInstance().cacheExists(id))
         {
@@ -1807,12 +1807,13 @@ public class JDBCEntityManager implements GenericEntityManager
                 }
             };
 
-            Cache memoryOnlyCache = new Cache(id, 50000, false, false, /*timetoLive s*/180, /*timetoIdle s*/180);
+            Cache memoryOnlyCache = new Cache(id, 150000, false, false, /*timetoLive s*/180, /*timetoIdle s*/180);
             CacheManager.getInstance().addCache(memoryOnlyCache);
             memoryOnlyCache.getCacheEventNotificationService().registerListener(listener);
             memoryOnlyCache.setStatisticsEnabled(true);
         }
-        return CacheManager.getInstance().getCache(id);
+        Cache cache = CacheManager.getInstance().getCache(id);
+        return new ConcurrentCache(cache);
     }
 //    public Cache getDedupBlockCache(  )
 //    {
@@ -2437,7 +2438,7 @@ public class JDBCEntityManager implements GenericEntityManager
 
     public void writeCacheStatistics( String id )
     {
-        Cache ch = getCache(id);
+        Cache ch = getCache(id).getCache();
         Statistics st = ch.getStatistics();
         System.out.println("Size: " + ch.getSize() + ": " + st.toString() );
     }
