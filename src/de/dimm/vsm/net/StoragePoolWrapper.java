@@ -22,16 +22,26 @@ public class StoragePoolWrapper implements Serializable, IWrapper
     boolean closeOnUnmount;
     String mountEntryIdx;
 
+    String agentIp;
+    int port;
+
 //    public StoragePoolWrapper()
 //    {
 //    }
-    public StoragePoolWrapper( long idx, long poolIdx, StoragePoolQry qry, boolean _poolHandlerWasCreated )
+    public StoragePoolWrapper( long idx, long poolIdx, String agentIp, int port, StoragePoolQry qry, boolean _poolHandlerWasCreated )
     {
         this.idx = idx;
         this.poolIdx = poolIdx;
         this.qry = qry;
+        this.agentIp = agentIp;
+        this.port = port;
         physicallyMounted = false;
         poolHandlerCreated = _poolHandlerWasCreated;
+    }
+
+    public String getBasePath()
+    {
+        return "/" + agentIp + "/" + port;
     }
 
     public boolean isCloseOnUnmount()
@@ -124,6 +134,21 @@ public class StoragePoolWrapper implements Serializable, IWrapper
         return mountEntryIdx;
     }
     
+    public String resolveRelPath(String path)
+    {
+        if (path.contains(":\\"))
+        {
+            path = path.replace(":\\", "/");
+            path = path.replace("\\", "/");
+        }
+        if (path.contains("\\\\"))
+        {
+            path = path.replace("\\\\", "/");
+            path = path.replace("\\", "/");
+        }
+        return getBasePath() +"/" + path;
+    }
+
     
 
 }
