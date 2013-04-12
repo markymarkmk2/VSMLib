@@ -33,6 +33,9 @@ public interface StoragePoolHandlerInterface {
 
     void mkdir( StoragePoolWrapper pool, String pathName ) throws IOException, PoolReadOnlyException, PathResolveException;
 
+    public long open_fh( StoragePoolWrapper pool, long nodeIdx, boolean forWrite ) throws IOException, PoolReadOnlyException, SQLException, PathResolveException;
+    public long open_stream( StoragePoolWrapper pool, long nodeIdx, boolean forWrite ) throws IOException, PoolReadOnlyException, SQLException, PathResolveException;
+    
     long create_fh( StoragePoolWrapper pool, String vsmPath, String type) throws IOException, PoolReadOnlyException, SQLException, PathResolveException;
     long create_stream( StoragePoolWrapper pool, String vsmPath, String type, int streamInfo) throws IOException, PoolReadOnlyException, SQLException, PathResolveException;
 

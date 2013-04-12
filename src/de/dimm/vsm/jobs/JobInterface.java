@@ -26,7 +26,8 @@ public interface JobInterface
         FINISHED_OK,
         FINISHED_OK_REMOVE,
         MANUAL_START,
-        ABORTED
+        ABORTED,
+        ABORTING
     }
 
     public JOBSTATE getJobState();
