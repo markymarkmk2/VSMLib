@@ -76,4 +76,11 @@ public class StringUtils
         }
         return fSize;
     }
+
+    public static boolean isEmpty( String mountEntrySubPath )
+    {
+         if (mountEntrySubPath == null || mountEntrySubPath.isEmpty())
+             return true;
+         return false;
+    }
 }

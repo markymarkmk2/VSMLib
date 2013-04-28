@@ -5,7 +5,9 @@
 
 package de.dimm.vsm.net;
 
+import de.dimm.vsm.hash.StringUtils;
 import de.dimm.vsm.net.interfaces.IWrapper;
+import de.dimm.vsm.records.MountEntry;
 import java.io.Serializable;
 
 /**
@@ -20,7 +22,8 @@ public class StoragePoolWrapper implements Serializable, IWrapper
     boolean physicallyMounted;
     boolean poolHandlerCreated;
     boolean closeOnUnmount;
-    String mountEntryIdx;
+    String mountEntryKey;
+    String mountEntrySubPath;
 
     String agentIp;
     int port;
@@ -41,7 +44,9 @@ public class StoragePoolWrapper implements Serializable, IWrapper
 
     public String getBasePath()
     {
-        return "/" + agentIp + "/" + port;
+        if (StringUtils.isEmpty(mountEntrySubPath))
+            return "/" + agentIp + "/" + port;
+        return mountEntrySubPath;
     }
 
     public boolean isCloseOnUnmount()
@@ -124,14 +129,15 @@ public class StoragePoolWrapper implements Serializable, IWrapper
         this.physicallyMounted = physicallyMounted;
     }
 
-    public void setMountEntryKey( String mountEntryIdx )
+    public void setMountEntry( MountEntry mountEntry )
     {
-        this.mountEntryIdx = mountEntryIdx;
+        this.mountEntryKey = mountEntry.getKey();
+        mountEntrySubPath = mountEntry.getSubPath();
     }
 
     public String getMountEntryKey()
     {
-        return mountEntryIdx;
+        return mountEntryKey;
     }
     
     public String resolveRelPath(String path)
@@ -146,7 +152,10 @@ public class StoragePoolWrapper implements Serializable, IWrapper
             path = path.replace("\\\\", "/");
             path = path.replace("\\", "/");
         }
-        return getBasePath() +"/" + path;
+        if (path.startsWith("/"))
+            return getBasePath() + path;
+        else
+            return getBasePath() +"/" + path;
     }
 
     

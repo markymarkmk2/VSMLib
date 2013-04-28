@@ -72,6 +72,7 @@ public interface StoragePoolHandlerInterface {
     void truncate( StoragePoolWrapper pool, RemoteFSElem fseNode, long size ) throws IOException, PoolReadOnlyException;
 
     void set_last_modified( StoragePoolWrapper pool, RemoteFSElem fseNode, long l ) throws IOException, SQLException, PoolReadOnlyException;
+    void set_ms_filetimes( StoragePoolWrapper pool, RemoteFSElem fseNode, long ctime , long atime , long mtime ) throws IOException, SQLException, PoolReadOnlyException;
 
     String get_xattribute( StoragePoolWrapper pool, RemoteFSElem fseNode, String name ) throws SQLException ;
 

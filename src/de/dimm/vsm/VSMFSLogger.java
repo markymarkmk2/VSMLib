@@ -11,7 +11,7 @@ public class VSMFSLogger
 
     static
     {        
-        log.setLevel(Level.INFO);
+        log.setLevel(Level.DEBUG);
     }
 
     public static void setLevel(Level l)
