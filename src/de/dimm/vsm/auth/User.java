@@ -6,9 +6,7 @@
 package de.dimm.vsm.auth;
 
 import de.dimm.vsm.fsengine.ArrayLazyList;
-import de.dimm.vsm.log.LogManager;
 import de.dimm.vsm.net.RemoteFSElem;
-import de.dimm.vsm.records.FileSystemElemAttributes;
 import de.dimm.vsm.records.FileSystemElemNode;
 import de.dimm.vsm.records.Role;
 import de.dimm.vsm.records.RoleOption;
@@ -16,11 +14,11 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.Serializable;
 import java.lang.String;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  *
@@ -226,6 +224,14 @@ public class User implements Serializable
             if (gids != null)
                 gid = gids.get(i);
             this.groups.put(groups.get(i), gid );
+        }
+    }
+    public void setGroups( Set<String> groups)
+    {
+        this.groups.clear();
+        for (String group : groups)
+        {
+            this.groups.put(group, -1 );
         }
     }
 

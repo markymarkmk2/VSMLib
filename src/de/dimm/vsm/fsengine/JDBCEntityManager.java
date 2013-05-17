@@ -155,10 +155,10 @@ public class JDBCEntityManager implements GenericEntityManager
             {
                 LogManager.msg_db(LogManager.LVL_WARN, "Opening already closed connection " + this.toString() );
             }
-            else
-            {
-                LogManager.msg_db(LogManager.LVL_INFO, "Opening connection " + this.toString() );
-            }
+//            else
+//            {
+//                LogManager.msg_db(LogManager.LVL_INFO, "Opening connection " + this.toString() );
+//            }
             jdbcConnection = connFactory.createConnection();
             jdbcConnection.setAutoCommit(false);
         }
@@ -191,7 +191,7 @@ public class JDBCEntityManager implements GenericEntityManager
     public JDBCEntityManager( long idx, JDBCConnectionFactory cf) throws SQLException
     {
         this.connFactory = cf;
-        LogManager.msg_db(LogManager.LVL_INFO, "Creating EntityManager " + this.toString() );
+//        LogManager.msg_db(LogManager.LVL_INFO, "Creating EntityManager " + this.toString() );
         this.jdbcConnection = getConnection();
         this.poolIdx = idx;
         
@@ -484,7 +484,7 @@ public class JDBCEntityManager implements GenericEntityManager
         if (jdbcConnection == null)
             return;
 
-        LogManager.msg_db(LogManager.LVL_INFO, "Closing connection " + this.toString() );
+        //LogManager.msg_db(LogManager.LVL_INFO, "Closing connection " + this.toString() );
         try
         {
             jdbcConnection.commit();
@@ -2353,6 +2353,32 @@ public class JDBCEntityManager implements GenericEntityManager
 
         return idx;
     }
+    
+    public Statement createStatement( ) throws SQLException
+    {
+        Statement st = null;
+        st = getConnection().createStatement();
+        return st;
+    }
+
+    public int nativeUpdate( Statement st, String string )
+    {
+        try
+        {
+            int n = st.executeUpdate(string);
+
+            return n;
+        }
+        catch (Exception sQLException)
+        {
+            LogManager.err_db("nativeUpdate failed for " + string, sQLException);
+        }
+        finally
+        {
+        }
+        return 0;
+    }
+
 
     @Override
     public int nativeUpdate( String string )

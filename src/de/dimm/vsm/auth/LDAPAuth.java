@@ -8,7 +8,12 @@ package de.dimm.vsm.auth;
 import de.dimm.vsm.log.LogManager;
 import de.dimm.vsm.records.Role;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import java.util.StringTokenizer;
 import javax.naming.Context;
@@ -55,7 +60,7 @@ public class LDAPAuth extends GenericRealmAuth
 
     LDAPUserContext user_context;
 
-    public static final Hashtable<Integer,String> ldap_error_map = new Hashtable<Integer, String>();
+    public static final Map<Integer,String> ldap_error_map = new HashMap<>();
 
     void init_ldap_error_list()
     {
@@ -157,9 +162,9 @@ public class LDAPAuth extends GenericRealmAuth
             mail_field_list = "mail";
         
         this.flags = flags;
-        if (ldap_port == 0)
+        if (port == 0)
         {
-            ldap_port = is_ssl() ? 636 : 389;
+            port = is_ssl() ? 636 : 389;
         }
         System.setProperty("javax.security.auth.useSubjectCredsOnly", "false");
     }
@@ -306,17 +311,45 @@ public class LDAPAuth extends GenericRealmAuth
         return ctx != null;
     }
 
-    @Override
-    public ArrayList<String> list_groups(User user) throws NamingException
+    public Set<String> list_groups(String name, String rootName) throws NamingException
     {
         String group = "group";
         if (groupIdentifier != null && !groupIdentifier.isEmpty())
             group = groupIdentifier;
 
-        return list_dn_qry("cn", "(memberUid=" + user.getLoginName() + ")(objectClass=" + group + ")");
+        // AD NEEDS DN == getUSERNAME
+        
+        Set<String> groups =  list_dn_qry("cn", "(memberUid=" + name + ")(objectClass=" + group + ")");
+        
+        Set<String> ret = new HashSet<>(groups);
+        
+        // List nested Groups
+        for (String groupEntry : groups)
+        {
+            // Skip Recursive Loops
+            if (groupEntry.equals(rootName))
+                continue;
+
+            Set<String> subGroups =  list_groups(groupEntry, rootName);
+            
+            ret.addAll(subGroups);
+        }
+        return ret;
     }
+    public Set<String> list_groups(String name) throws NamingException
+    {
+        return list_groups(name, name);
+    }
+
+    
     @Override
-    public ArrayList<String> list_groups(/*String userName*/) throws NamingException
+    public Set<String> list_groups(User user) throws NamingException
+    {
+        return list_groups( user.getLoginName());
+    }
+    
+    @Override
+    public Set<String> list_groups(/*String userName*/) throws NamingException
     {
         String group = "group";
         if (groupIdentifier != null && !groupIdentifier.isEmpty())
@@ -326,9 +359,9 @@ public class LDAPAuth extends GenericRealmAuth
     }
 
     @Override
-    public ArrayList<String> list_mailaliases_for_userlist( ArrayList<String> users ) throws NamingException
+    public List<String> list_mailaliases_for_userlist( List<String> users ) throws NamingException
     {
-        ArrayList<String> mail_list = new ArrayList<String>();
+        List<String> mail_list = new ArrayList<>();
         if (users.isEmpty())
             return mail_list;
         // RETURN VALS
@@ -350,13 +383,13 @@ public class LDAPAuth extends GenericRealmAuth
                 for (int i = 0; i < users.size(); i++)
                 {
                     String string = users.get(i);
-                    ldap_qry.append("(" + search_attribute + "=" + string + ")");
+                    ldap_qry.append( ("(" + search_attribute + "=" + string + ")"));
                 }
                 ldap_qry.append(")");
             }
             else
             {
-                ldap_qry.append("(" + search_attribute + "=" + users.get(0) + ")");
+                ldap_qry.append(( "(" + search_attribute + "=" + users.get(0) + ")"));
             }
 
             LogManager.msg_auth( LogManager.LVL_DEBUG, "list_mailaliases_for_userlist: " + rootSearchBase + " " + ldap_qry);
@@ -384,7 +417,7 @@ public class LDAPAuth extends GenericRealmAuth
     }
 
     @Override
-    public ArrayList<String> list_users_for_group( String group ) throws NamingException
+    public Set<String> list_users_for_group( String group ) throws NamingException
     {
         String ldapfilter_term = "";
         if (ldapfilter != null && ldapfilter.length() > 0)
@@ -453,7 +486,7 @@ public class LDAPAuth extends GenericRealmAuth
             
             LogManager.msg_auth( LogManager.LVL_DEBUG, "open_user: " + rootSearchBase + " " + searchFilter);
             
-            NamingEnumeration<SearchResult> enumeration = null;
+            NamingEnumeration<SearchResult> enumeration;
             try
             {
                 enumeration = ctx.search(rootSearchBase, searchFilter, ctrl);
@@ -508,7 +541,7 @@ public class LDAPAuth extends GenericRealmAuth
             
 
             // NOW GO FOR LOGIN USER WITH DN
-            LdapContext user_ctx = null;
+            LdapContext user_ctx;
             Hashtable<String,String> connect_env = create_sec_env();
 
 
@@ -581,7 +614,7 @@ public class LDAPAuth extends GenericRealmAuth
                 return null;
             }*/
 
-            NamingEnumeration<SearchResult> enumeration = null;
+            NamingEnumeration<SearchResult> enumeration;
             try
             {
                 enumeration = ctx.search(rootSearchBase, searchFilter, ctrl);
@@ -635,7 +668,7 @@ public class LDAPAuth extends GenericRealmAuth
             NamingEnumeration answer = ctx.search( full_user_dn, "(password={0})", new Object[]{pwd}, ctls);
             if (!answer.hasMore())
             {
-                if (has_cn)
+                if (has_cn && cn_adn != null && cn_adn.get() != null)
                 {                    
                     String cn_user_dn = cn_adn.get().toString();
                     answer = ctx.search( cn_user_dn, "(password={0})", new Object[]{pwd}, ctls);
@@ -698,7 +731,7 @@ public class LDAPAuth extends GenericRealmAuth
         }
     }
 
-    ArrayList<String> list_dn_qry( String attribute, String ldap_qry ) throws NamingException
+    Set<String> list_dn_qry( String attribute, String ldap_qry ) throws NamingException
     {
         SearchControls ctrl = new SearchControls();
         ctrl.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -712,7 +745,7 @@ public class LDAPAuth extends GenericRealmAuth
         LogManager.msg_auth( LogManager.LVL_DEBUG, "DN_Qry: " + rootSearchBase + " " + ldap_qry);
         NamingEnumeration<SearchResult> results = ctx.search(rootSearchBase, ldap_qry, ctrl);
 
-        ArrayList<String> dn_list = new ArrayList<String>();
+        Set<String> dn_list = new HashSet<>();
 
         while (results.hasMoreElements())
         {
@@ -756,7 +789,7 @@ public class LDAPAuth extends GenericRealmAuth
         }
         catch (Exception exc)
         {
-            exc.printStackTrace();
+            LogManager.printStackTrace(exc);
         }
     }
 
@@ -797,7 +830,7 @@ public class LDAPAuth extends GenericRealmAuth
 
             LogManager.msg_auth( LogManager.LVL_DEBUG, "open_user: " + rootSearchBase + " " + searchFilter);
 
-            NamingEnumeration<SearchResult> enumeration = null;
+            NamingEnumeration<SearchResult> enumeration;
             try
             {
                 enumeration = ctx.search(rootSearchBase, searchFilter, ctrl);
@@ -846,9 +879,9 @@ public class LDAPAuth extends GenericRealmAuth
 
             User user = new User(dn, user_name, niceName);
 
-            ArrayList<String>groups = list_groups(user);
+            Set<String>groups = list_groups(user);
 
-            user.setGroups(groups, null);
+            user.setGroups(groups);
 
             return user;
         }

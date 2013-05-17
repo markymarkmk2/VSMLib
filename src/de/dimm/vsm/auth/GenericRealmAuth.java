@@ -11,7 +11,10 @@ import de.dimm.vsm.log.LogManager;
 import de.dimm.vsm.records.AccountConnector;
 import de.dimm.vsm.records.Role;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import javax.naming.NamingException;
 
 /**
@@ -105,19 +108,19 @@ public abstract class GenericRealmAuth
    
 
   
-    public ArrayList<String> list_groups() throws NamingException
+    public Set<String> list_groups() throws NamingException
     {
-        return new ArrayList<String>();
+        return new HashSet<>();
     }
-    public ArrayList<String> list_groups(User user) throws NamingException
+    public Set<String> list_groups(User user) throws NamingException
     {
-        return new ArrayList<String>();
+        return new HashSet<>();
     }
 
     // THIS IS OVERRIDDEN IN LDAP
-    public ArrayList<String> list_mailaliases_for_userlist( ArrayList<String> users ) throws NamingException
+    public List<String> list_mailaliases_for_userlist( List<String> users ) throws NamingException
     {
-        ArrayList<String>mail_list = new ArrayList<String>();
+        List<String>mail_list = new ArrayList<>();
 
 //        Set<MailUser> mail_user = act.getMandant().getMailusers();
 //        for (Iterator<MailUser> it = mail_user.iterator(); it.hasNext();)
@@ -151,9 +154,9 @@ public abstract class GenericRealmAuth
     }
 
 
-    public ArrayList<String> list_users_for_group( String group ) throws NamingException
+    public Set<String> list_users_for_group( String group ) throws NamingException
     {
-        ArrayList<String>users = new ArrayList<String>();
+        Set<String>users = new HashSet<>();
 
 //        Set<MailUser> mail_users = act.getMandant().getMailusers();
 //        for (Iterator<MailUser> it = mail_users.iterator(); it.hasNext();)
@@ -235,12 +238,12 @@ public abstract class GenericRealmAuth
         return (flags & test_flag) == test_flag;
     }
 
-    public ArrayList<String> get_mailaliaslist_for_user( String user ) throws NamingException
+    public List<String> get_mailaliaslist_for_user( String user ) throws NamingException
     {
 
-        ArrayList<String> user_list = new ArrayList<String>();
+        ArrayList<String> user_list = new ArrayList<>();
         user_list.add(user);
-        ArrayList<String> mail_list = list_mailaliases_for_userlist(  user_list );
+        List<String> mail_list = list_mailaliases_for_userlist(  user_list );
         if ((act.getFlags() & CS_Constants.ACCT_USER_IS_MAIL) == CS_Constants.ACCT_USER_IS_MAIL)
         {
             String user_mail = get_mail_from_user( user );

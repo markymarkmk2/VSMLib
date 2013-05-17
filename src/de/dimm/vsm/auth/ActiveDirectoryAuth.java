@@ -9,7 +9,10 @@ import de.dimm.vsm.log.LogManager;
 import de.dimm.vsm.records.AccountConnector;
 import de.dimm.vsm.records.Role;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Set;
 
 import javax.naming.Context;
 import javax.naming.NamingEnumeration;
@@ -197,24 +200,49 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
     }
 
     @Override
-    public ArrayList<String> list_groups() throws NamingException
+    public Set<String> list_groups() throws NamingException
     {
         return list_attribute_qry("(&(objectClass=group)(name=*))", "name");
     }
     @Override
-    public ArrayList<String> list_groups(User user) throws NamingException
+    public Set<String> list_groups(User user) throws NamingException
+    {        
+        return list_groups(user.getUserName());
+    }
+    public Set<String> list_groups(String name) throws NamingException
+    {
+        return list_groups(name, name);
+    }
+
+    public Set<String> list_groups(String name, String rootName) throws NamingException
     {
         String group = "group";
         if (groupIdentifier != null && !groupIdentifier.isEmpty())
             group = groupIdentifier;
 
         // AD NEEDS DN == getUSERNAME
-        String qry =  "(&(member=" + user.getUserName() + ")(objectClass=" + group + "))";
-        return list_attribute_qry( qry, "name");
+        String qry =  "(&(member=" + name + ")(objectClass=" + group + "))";
+        Set<String> groups =  list_attribute_qry( qry, "name"); 
+        
+        Set<String> ret = new HashSet<>(groups);
+        
+        // List nested Groups
+        for (String groupEntry : groups)
+        {
+            // Skip Recursive Loops
+            if (groupEntry.equals(rootName))
+                continue;
+
+            Set<String> subGroups =  list_groups(groupEntry);    
+            
+            ret.addAll(subGroups);
+        }
+        return ret;
     }
+    
 
     @Override
-    public ArrayList<String> list_mailaliases_for_userlist( ArrayList<String> users ) throws NamingException
+    public List<String> list_mailaliases_for_userlist( List<String> users ) throws NamingException
     {
         // RETURN VALS
         SearchControls ctrl = new SearchControls();
@@ -238,7 +266,7 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
             {
                 string += "@" + act.getLdapdomain();
             }
-            ldap_qry.append("(userPrincipalName=" + string + ")");
+            ldap_qry.append(("(userPrincipalName=" + string + ")"));
         }
         if (users.size() > 1)
             ldap_qry.append( ")" );
@@ -247,7 +275,7 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
         LogManager.msg_auth( LogManager.LVL_DEBUG, "list_mailaliases_for_userlist: " + rootSearchBase + " " + ldap_qry_txt);
 
         NamingEnumeration<SearchResult> results = ctx.search(rootSearchBase, ldap_qry_txt, ctrl);
-        ArrayList<String> mail_list = new ArrayList<String>();
+        ArrayList<String> mail_list = new ArrayList<>();
         while (results.hasMoreElements())
         {
             SearchResult searchResult = (SearchResult) results.nextElement();
@@ -297,7 +325,7 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
                 }
             }
         }
-        if (mail_list.size() == 0)
+        if (mail_list.isEmpty())
         {
             LogManager.msg_auth( LogManager.LVL_DEBUG, "No mail entries found for query: " + rootSearchBase + " " + ldap_qry);
         }
@@ -305,7 +333,7 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
     }
 
     @Override
-    public ArrayList<String> list_users_for_group( String group ) throws NamingException
+    public Set<String> list_users_for_group( String group ) throws NamingException
     {
         if (group != null && group.length() > 0)
         {            
@@ -343,8 +371,8 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
 
     ADUserContext open_user( String user_principal, String pwd )
     {
-        String rootSearchBase = "?";
-        SearchResult sr = null;
+        String rootSearchBase;
+        SearchResult sr;
         
         SearchControls ctrl = new SearchControls();
         ctrl.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -452,7 +480,7 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
         }
         catch (NamingException namingException)
         {
-            namingException.printStackTrace();
+            LogManager.printStackTrace(namingException);
         }
         return null;
     }
@@ -469,7 +497,7 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
         }
     }
 
-    ArrayList<String> list_dn_qry( String ldap_qry ) throws NamingException
+    List<String> list_dn_qry( String ldap_qry ) throws NamingException
     {
         SearchControls ctrl = new SearchControls();
         ctrl.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -483,7 +511,7 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
         LogManager.msg_auth( LogManager.LVL_DEBUG, "DN_Qry: " + rootSearchBase + " " + ldap_qry);
         NamingEnumeration<SearchResult> results = ctx.search(rootSearchBase, ldap_qry, ctrl);
 
-        ArrayList<String> dn_list = new ArrayList<String>();
+        ArrayList<String> dn_list = new ArrayList<>();
 
         while (results.hasMoreElements())
         {
@@ -493,7 +521,7 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
 
         return dn_list;
     }
-    ArrayList<String> list_attribute_qry( String ldap_qry, String attributname ) throws NamingException
+    Set<String> list_attribute_qry( String ldap_qry, String attributname ) throws NamingException
     {
         SearchControls ctrl = new SearchControls();
         ctrl.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -507,7 +535,7 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
         LogManager.msg_auth( LogManager.LVL_DEBUG, "DN_Qry: " + rootSearchBase + " " + ldap_qry);
         NamingEnumeration<SearchResult> results = ctx.search(rootSearchBase, ldap_qry, ctrl);
 
-        ArrayList<String> dn_list = new ArrayList<String>();
+        Set<String> dn_list = new HashSet<>();
 
         while (results.hasMoreElements())
         {
@@ -563,7 +591,7 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
     public User load_user( String user_principal )
     {
         String rootSearchBase = "?";
-        SearchResult sr = null;
+        SearchResult sr;
         try
         {
             SearchControls ctrl = new SearchControls();
@@ -665,9 +693,9 @@ public class ActiveDirectoryAuth extends GenericRealmAuth
 
             User user = new WinUser(user_dn, user_principal, niceName, samAccountName, ntDomainName );
 
-            ArrayList<String>groups = list_groups(user);
+            Set<String>groups = list_groups(user);
 
-            user.setGroups(groups, null);
+            user.setGroups(groups);
 
             return user;
         }
