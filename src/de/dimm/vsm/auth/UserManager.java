@@ -23,7 +23,7 @@ public class UserManager
     public UserManager(List<Role> roles)
     {
         this.roles = roles;
-        userMap = new HashMap<String, User>();
+        userMap = new HashMap<>();
     }
 
     public User getUser(String username)
@@ -52,6 +52,10 @@ public class UserManager
             for (int i = 0; i < roles.size(); i++)
             {
                 Role role = roles.get(i);
+                String filter = role.getAccountmatch();        
+                if (!username.matches(filter))
+                    continue;
+
                 AccountConnector acc = role.getAccountConnector();
 
                 GenericRealmAuth auth = GenericRealmAuth.factory_create_realm(acc);
