@@ -61,10 +61,12 @@ public class User implements Serializable
     public class VsmFsMapper implements Serializable
     {
         List<VsmFsEntry> vsmList;
+        List<VsmExcludeEntry> vsmExclList;
 
         public VsmFsMapper()
         {
-            this.vsmList = new ArrayList<VsmFsEntry>();
+            this.vsmList = new ArrayList<>();
+            this.vsmExclList = new ArrayList<>();
         }
 
         public List<VsmFsEntry> getVsmList()
@@ -72,18 +74,55 @@ public class User implements Serializable
             return vsmList;
         }
 
+        public List<VsmExcludeEntry> getVsmExclList()
+        {
+            return vsmExclList;
+        }
+        
+        public boolean isExcluded( RemoteFSElem path )
+        {
+            for (int i = 0; i < vsmExclList.size(); i++)
+            {                
+                VsmExcludeEntry entry = vsmExclList.get(i);
+                if (entry.excludes(path))
+                    return true;
+            }
+            return false;
+        }
+        
+        public boolean isExcluded( FileSystemElemNode node )
+        {
+            String path = getPath(node);
+            
+            for (int i = 0; i < vsmExclList.size(); i++)
+            {                
+                VsmExcludeEntry entry = vsmExclList.get(i);
+                if (entry.excludes(path, node.isDirectory()))
+                    return true;
+            }
+            return false;
+        }
+        
+        public boolean isExcluded( String path )
+        {
+            for (int i = 0; i < vsmExclList.size(); i++)
+            {                
+                VsmExcludeEntry entry = vsmExclList.get(i);
+                if (entry.excludes(path, false))
+                    return true;
+            }
+            return false;
+        }
 
         public boolean isEmpty()
         {
-            return vsmList == null || vsmList.isEmpty();
+            return vsmList.isEmpty();
         }
 
         public boolean isAllowed( String path )
         {
-            if (isEmpty())
-                return true;
             for (int i = 0; i < vsmList.size(); i++)
-            {
+            {                
                 VsmFsEntry vsmFsEntry = vsmList.get(i);
                 if (vsmFsEntry.isAllowed(path))
                     return true;
@@ -115,8 +154,8 @@ public class User implements Serializable
             if (isEmpty())
                 return elems;
 
-            Map<String,RemoteFSElem> result = new HashMap<String, RemoteFSElem>();
-
+            Map<String,RemoteFSElem> result = new HashMap<>();
+            
             for (int r = 0; r < elems.size(); r++)
             {
                 RemoteFSElem remoteFSElem = elems.get(r);
@@ -141,11 +180,61 @@ public class User implements Serializable
                 }
             }
 
-            return new ArrayList<RemoteFSElem>(result.values());
+            return new ArrayList<>(result.values());
         }
 
         
 
+    }
+    public class  VsmExcludeEntry  implements Serializable
+    {
+        String mask;
+        boolean dirOnly;
+        boolean fileOnly;
+        boolean incl;
+
+        public VsmExcludeEntry( String mask, boolean dirOnly, boolean fileOnly, boolean incl )
+        {
+            this.mask = mask;
+            this.dirOnly = dirOnly;
+            this.fileOnly = fileOnly;
+            this.incl = incl;
+        }        
+                
+        private boolean excludes( RemoteFSElem elem )
+        {
+            return excludes(elem.getName(), elem.isDirectory());            
+        }
+        
+        private boolean excludes( String path, boolean isDir )
+        {  
+             if (!fileOnly && dirOnly && !isDir)
+                return false;
+             if (!dirOnly && fileOnly && isDir)
+                return false;
+             
+            if (path.matches(mask))
+            {
+                return (incl) ? false : true;
+            }
+            return (incl) ? true : false;            
+        }
+
+    }
+
+    private String getPath( FileSystemElemNode elem )
+    {
+        StringBuilder sb = new StringBuilder();
+        while( elem != null)
+        {                    
+            if (!elem.getName().equals("/"))
+            {
+                sb.insert(0, elem);
+                sb.insert(0, "/");
+            }
+            elem = elem.getParent();
+        }
+        return sb.toString();
     }
 
     public class  VsmFsEntry  implements Serializable
@@ -353,21 +442,50 @@ public class User implements Serializable
                 continue;
             if (string.charAt(0) == '#')
                 continue;
-
-            String[] entry = string.split(",");
-            if (entry.length != 2)
-                continue;
-            String v = entry[0].trim();
-            String u = entry[1].trim();
-            if (v.isEmpty())
-                continue;
-            if (u.isEmpty())
-                continue;
-            if (v.charAt(0) != '/')
-                continue;
             
-
-            fsMapper.getVsmList().add( new VsmFsEntry(v, u));
+            if (string.startsWith("Exclude"))
+            {
+                String[] entry = string.split(",");
+                if (entry.length < 1)
+                    continue;
+                
+                String mask = entry[1].trim();
+                if (mask.isEmpty())
+                    continue;
+                
+                boolean dirOnly = false;
+                boolean fileOnly = false;
+                boolean incl = false;
+                for (int j = 1; j < entry.length; j++)
+                {
+                    if (entry[j].trim().toLowerCase().startsWith("inc"))
+                        incl = true;
+                    
+                    if (entry[j].trim().toLowerCase().equals("dir"))
+                        dirOnly = true;
+                    
+                    if (entry[j].trim().toLowerCase().equals("file"))
+                        fileOnly = true;
+                }
+                
+                fsMapper.getVsmExclList().add( new VsmExcludeEntry(mask, dirOnly, fileOnly, incl));
+            }
+            else
+            {
+                String[] entry = string.split(",");
+                if (entry.length != 2)
+                    continue;
+                String v = entry[0].trim();
+                String u = entry[1].trim();
+                if (v.isEmpty())
+                    continue;
+                if (u.isEmpty())
+                    continue;
+                if (v.charAt(0) != '/')
+                    continue;
+                
+                fsMapper.getVsmList().add( new VsmFsEntry(v, u));
+            }
         }
     }
 

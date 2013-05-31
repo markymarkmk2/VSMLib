@@ -191,6 +191,9 @@ public class StoragePoolQry implements Serializable
     
     public boolean matchesUser( FileSystemElemNode node, FileSystemElemAttributes attr, UserManager userManager )
     {
+        if (isExcludedByVsmMapping(node))
+            return false;
+        
         if (useMappingFilter && !isAllowedByVsmMapping(node))
             return false;
 
@@ -395,11 +398,16 @@ public class StoragePoolQry implements Serializable
                 throw new RuntimeException("Path_is_too_deep");
         }
     }
+    private boolean isExcludedByVsmMapping(FileSystemElemNode node)
+    {
+        return user.getFsMapper().isExcluded(node);
+    }
 
     private boolean isAllowedByVsmMapping(FileSystemElemNode node)
     {
         if (user.getFsMapper().isEmpty())
             return true;
+        
 
         StringBuilder sb = new StringBuilder();
         build_relative_virtual_path ( node, sb );

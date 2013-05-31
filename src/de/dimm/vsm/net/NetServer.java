@@ -68,6 +68,7 @@ public class NetServer
 
 
         jetty_server.setHandler(context);
+        
 
         try
         {
