@@ -9,6 +9,7 @@ import de.dimm.vsm.auth.User;
 import de.dimm.vsm.auth.UserManager;
 import de.dimm.vsm.records.FileSystemElemAttributes;
 import de.dimm.vsm.records.FileSystemElemNode;
+import de.dimm.vsm.records.RoleOption;
 import java.io.Serializable;
 import java.nio.file.attribute.AclEntryPermission;
 import java.nio.file.attribute.AclEntryType;
@@ -34,7 +35,11 @@ public class StoragePoolQry implements Serializable
         this.user = user;
         this.readOnly = readOnly;
         this.snapShotTs = snapShotTs;
-        this.showDeleted = showDeleted;        
+        this.showDeleted = showDeleted;   
+        
+        // UserRechte gehen über Vorgaben von außen
+        if (!user.isAdmin() && !user.hasRoleOption(RoleOption.RL_READ_WRITE))
+            this.readOnly = true;        
     }
 
     public StoragePoolQry( User user, boolean readOnly, long snapShotTs )
@@ -45,14 +50,28 @@ public class StoragePoolQry implements Serializable
     public StoragePoolQry(  User user, ArrayList<SearchEntry> slist )
     {
         this.user = user;
-        if (!user.isAdmin())
+        if (!user.isAdmin() && !user.hasRoleOption(RoleOption.RL_READ_WRITE))
             this.readOnly = true;
+        
         this.slist = slist;
     }
 
     public boolean isReadOnly()
     {
         return readOnly;
+    }
+    
+    public boolean isReadOnly(FileSystemElemNode node)
+    {
+        if (readOnly)
+            return true;
+
+        // Hmm, Wenn kein Node angegeben wurde, übernehme ich die Vorgabe vom Pool (User beim Erzeugen)
+        if (node == null)
+            return true;
+        
+        // Aus FS-Mapping ermitteln
+        return !isReadWriteByVsmMapping(node);
     }
 
     public boolean isShowDeleted()
@@ -150,6 +169,7 @@ public class StoragePoolQry implements Serializable
     {
         return matchesSearchListTimestamp(slist, attr);
     }
+    
     boolean isAccessAllow( VSMAclEntry entry )
     {
         if (entry.type() == AclEntryType.ALLOW)
@@ -165,6 +185,7 @@ public class StoragePoolQry implements Serializable
         }
         return false;
     }
+    
     boolean isAccessDeny( VSMAclEntry entry )
     {
         if (entry.type() == AclEntryType.DENY)
@@ -188,6 +209,7 @@ public class StoragePoolQry implements Serializable
     public User getUser() {
         return user;
     }
+
     
     public boolean matchesUser( FileSystemElemNode node, FileSystemElemAttributes attr, UserManager userManager )
     {
@@ -219,7 +241,7 @@ public class StoragePoolQry implements Serializable
             
             // Nix parametriert -> alles erlaubt
             
-            if (acls.size() == 0) 
+            if (acls.isEmpty()) 
                 return true;
             
             boolean existsAllow = false;
@@ -414,6 +436,18 @@ public class StoragePoolQry implements Serializable
         String path = sb.toString();
 
         return user.getFsMapper().isAllowed( path );
+    }
+    private boolean isReadWriteByVsmMapping(FileSystemElemNode node)
+    {
+        if (user.getFsMapper().isEmpty())
+            return true;
+        
+
+        StringBuilder sb = new StringBuilder();
+        build_relative_virtual_path ( node, sb );
+        String path = sb.toString();
+
+        return user.getFsMapper().isReadWrite( path );
     }
 
 }

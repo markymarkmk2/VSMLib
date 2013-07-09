@@ -7,6 +7,9 @@ package de.dimm.vsm.net.interfaces;
 
 import de.dimm.vsm.net.CdpEvent;
 import de.dimm.vsm.net.CdpTicket;
+import de.dimm.vsm.net.RemoteFSElem;
+import de.dimm.vsm.net.StoragePoolWrapper;
+import de.dimm.vsm.net.VfsTicket;
 import java.util.List;
 import java.util.Properties;
 
@@ -30,4 +33,6 @@ public interface ServerApi
 
     boolean cdp_call( CdpEvent ev, CdpTicket ticket );
     boolean cdp_call_list( List<CdpEvent> ev, CdpTicket ticket );
+
+    boolean vfs_call( List<RemoteFSElem> elems, StoragePoolWrapper ticket );
 }

@@ -13,6 +13,7 @@ import de.dimm.vsm.net.InvalidCdpTicketException;
 import de.dimm.vsm.net.RemoteFSElem;
 import de.dimm.vsm.net.RemoteFSElemWrapper;
 import de.dimm.vsm.net.StoragePoolWrapper;
+import de.dimm.vsm.net.VfsTicket;
 import de.dimm.vsm.records.Excludes;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -92,7 +93,7 @@ public interface AgentApi
 
     boolean mountVSMFS( InetAddress addr, int port, StoragePoolWrapper pool, /*Date timestamp, String subPath, User user,*/ String drive);
     boolean unmountVSMFS( InetAddress addr, int port, StoragePoolWrapper pool);
-    boolean isMountedVSMFS( InetAddress addr, int port, StoragePoolWrapper pool);
+    boolean isMountedVSMFS( InetAddress addr, int port, StoragePoolWrapper pool);   
 
     public RemoteFSElemWrapper open_stream_data( RemoteFSElem remoteFSElem, int FL_RDONLY ) throws IOException;
 

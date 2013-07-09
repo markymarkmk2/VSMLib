@@ -129,6 +129,16 @@ public class User implements Serializable
             }
             return false;
         }
+        public boolean isReadWrite( String path )
+        {
+            for (int i = 0; i < vsmList.size(); i++)
+            {                
+                VsmFsEntry vsmFsEntry = vsmList.get(i);
+                if (vsmFsEntry.isAllowed(path))
+                    return vsmFsEntry.isReadWrite();
+            }
+            return false;
+        }
         public String mapVsmToUserPath( String path )
         {
             if (isEmpty())
@@ -242,12 +252,14 @@ public class User implements Serializable
         int vPathLen;
         String vPath;
         String uPath;
+        boolean readWrite;
 
-        public VsmFsEntry( String vPath, String uPath )
+        public VsmFsEntry( String vPath, String uPath, boolean readWrite )
         {
             this.vPath = vPath;
             this.uPath = uPath;
-            vPathLen = vPath.length();
+            this.readWrite = readWrite;
+            vPathLen = vPath.length();            
         }
 
         public int getvPathLen()
@@ -266,6 +278,12 @@ public class User implements Serializable
             return vPath;
         }
 
+        public boolean isReadWrite()
+        {
+            return readWrite;
+        }
+        
+
         public boolean isAllowed(String path)
         {
             if (path.startsWith(getvPath()))
@@ -277,6 +295,7 @@ public class User implements Serializable
             }
             return false;
         }
+        
 
         @Override
         public String toString() {
@@ -355,6 +374,10 @@ public class User implements Serializable
         return fsMapper;
     }
 
+    public boolean hasRoleOption(String option)
+    {
+        return role.hasRoleOption( option );
+    }
     
 
 
@@ -363,12 +386,17 @@ public class User implements Serializable
         return role.hasRoleOption( RoleOption.RL_ADMIN);
     }
 
+    /**
+     * Das ist der User, mit dem intern gemountet wird, also muss der auch schreiben können
+     * @return 
+     */
     public static User createSystemInternal()
     {
         User user = new User("system", "system", "system");
         Role role = new Role();
         ArrayLazyList<RoleOption> rolist = new ArrayLazyList<RoleOption>();
         rolist.add(new RoleOption(0, role, RoleOption.RL_ADMIN, 0, ""));
+        rolist.add(new RoleOption(0, role, RoleOption.RL_READ_WRITE, 0, ""));
         role.setRoleOptions(rolist);
         user.setRole(role);
         return user;
@@ -473,18 +501,25 @@ public class User implements Serializable
             else
             {
                 String[] entry = string.split(",");
-                if (entry.length != 2)
+                if (entry.length <= 2)
                     continue;
-                String v = entry[0].trim();
-                String u = entry[1].trim();
-                if (v.isEmpty())
+                String vsmPath = entry[0].trim();
+                String userPath = entry[1].trim();
+                if (vsmPath.isEmpty())
                     continue;
-                if (u.isEmpty())
+                if (userPath.isEmpty())
                     continue;
-                if (v.charAt(0) != '/')
+                if (vsmPath.charAt(0) != '/')
                     continue;
                 
-                fsMapper.getVsmList().add( new VsmFsEntry(v, u));
+                boolean readWrite = false;
+                for (int j = 2; j < entry.length; j++)
+                {
+                    if (entry[j].trim().toLowerCase().equals("rw"))
+                        readWrite = true;
+                }
+                
+                fsMapper.getVsmList().add( new VsmFsEntry(vsmPath, userPath, readWrite));
             }
         }
     }

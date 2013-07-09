@@ -42,6 +42,8 @@ public interface StoragePoolHandlerInterface {
     String getName(StoragePoolWrapper pool);
 
     boolean delete_fse_node( StoragePoolWrapper pool, String path ) throws PoolReadOnlyException, SQLException;
+    
+    boolean delete_fse_node( StoragePoolWrapper pool, long idx ) throws PoolReadOnlyException, SQLException;
 
     List<RemoteFSElem> get_child_nodes( StoragePoolWrapper pool, RemoteFSElem handler ) throws SQLException;
 
@@ -50,6 +52,8 @@ public interface StoragePoolHandlerInterface {
     public void set_ms_times( StoragePoolWrapper pool, long idx, long toJavaTime, long toJavaTime0, long toJavaTime1 ) throws IOException, SQLException, PoolReadOnlyException;
 
     public boolean exists( StoragePoolWrapper pool, RemoteFSElem fseNode ) throws IOException;
+
+    public boolean isReadOnly( StoragePoolWrapper pool, long idx ) throws IOException, SQLException;
 
     public void force( StoragePoolWrapper pool, long idx, boolean b ) throws IOException;
 

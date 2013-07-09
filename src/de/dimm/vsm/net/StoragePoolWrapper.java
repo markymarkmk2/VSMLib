@@ -158,6 +158,17 @@ public class StoragePoolWrapper implements Serializable, IWrapper
             return getBasePath() +"/" + path;
     }
 
+    public int getPort()
+    {
+        return port;
+    }
+
+    public String getAgentIp()
+    {
+        return agentIp;
+    }
+    
+
     
 
 }

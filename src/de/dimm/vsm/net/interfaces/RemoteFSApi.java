@@ -46,6 +46,8 @@ public interface RemoteFSApi {
 
     boolean exists( RemoteFSElem fseNode )throws IOException;
 
+    boolean isReadOnly(long idx )throws IOException, SQLException;
+
     void set_ms_times( long idx, long ctime, long atime, long mtime ) throws IOException, SQLException, PoolReadOnlyException;
 
     void force( long idx, boolean b )throws IOException;

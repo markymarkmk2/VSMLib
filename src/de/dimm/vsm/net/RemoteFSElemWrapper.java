@@ -15,14 +15,14 @@ public class RemoteFSElemWrapper implements Serializable
 {
     long handle;
     boolean xa;
+    boolean virtualFS;
 
 
-    public RemoteFSElemWrapper( long handle, boolean xa )
+    public RemoteFSElemWrapper( long handle, boolean xa, boolean virtualFS )
     {
         this.handle = handle;
         this.xa = xa;
- 
-
+        this.virtualFS = virtualFS; 
     }
 
     public long getHandle()
@@ -35,7 +35,11 @@ public class RemoteFSElemWrapper implements Serializable
         return xa;
     }
 
-   
+    public boolean isVirtualFS()
+    {
+        return virtualFS;
+    }
 
+   
 
 }
