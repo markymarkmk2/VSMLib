@@ -79,7 +79,7 @@ public class JobEntry
         return job.getStatisticStr();
     }
 
-    public int getProcessPercent()
+    public String getProcessPercent()
     {
         return job.getProcessPercent();
     }

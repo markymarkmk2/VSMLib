@@ -25,6 +25,10 @@ public class UserManager
         this.roles = roles;
         userMap = new HashMap<>();
     }
+    public boolean existsUser(String username)
+    {
+        return userMap.containsKey(username);
+    }
 
     public User getUser(String username)
     {

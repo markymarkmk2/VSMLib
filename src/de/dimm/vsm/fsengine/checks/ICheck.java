@@ -27,7 +27,7 @@ public interface ICheck {
 
     void close();
 
-    public int getProcessPercent();
+    public String getProcessPercent();
     public String getProcessPercentDimension();
 
     public String getStatisticStr();

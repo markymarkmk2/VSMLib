@@ -33,6 +33,7 @@ public interface RemoteFSApi {
     String getName();
 
     boolean remove_fse_node(  String path ) throws PoolReadOnlyException, SQLException;
+    boolean remove_fse_node(  long idx ) throws PoolReadOnlyException, SQLException;
 
     List<RemoteFSElem> get_child_nodes( RemoteFSElem handler ) throws SQLException;
 

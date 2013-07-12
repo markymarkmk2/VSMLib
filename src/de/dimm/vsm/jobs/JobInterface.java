@@ -41,7 +41,7 @@ public interface JobInterface
     public Date getStartTime();
     public Object getResultData();
 
-    public int getProcessPercent();
+    public String getProcessPercent();
     public String getProcessPercentDimension();
 
     public void abortJob();
