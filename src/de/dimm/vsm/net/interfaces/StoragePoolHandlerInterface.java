@@ -16,6 +16,8 @@ import java.util.List;
 /**
  *
  * @author Administrator
+ * 
+ * !!!!! WICHTIG !!!!!! Hesian unterstützt keine Polymorphen methoden, alles muss unterschiedliche Methodennamen haben !!!!!!!!!!!!!!
  */
 public interface StoragePoolHandlerInterface {
 
@@ -41,13 +43,14 @@ public interface StoragePoolHandlerInterface {
 
     String getName(StoragePoolWrapper pool);
 
-    boolean delete_fse_node( StoragePoolWrapper pool, String path ) throws PoolReadOnlyException, SQLException;
+    boolean delete_fse_node_path( StoragePoolWrapper pool, String path ) throws IOException, PoolReadOnlyException, SQLException;
     
-    boolean delete_fse_node( StoragePoolWrapper pool, long idx ) throws PoolReadOnlyException, SQLException;
+    boolean delete_fse_node_idx( StoragePoolWrapper pool, long idx ) throws IOException, PoolReadOnlyException, SQLException;
 
     List<RemoteFSElem> get_child_nodes( StoragePoolWrapper pool, RemoteFSElem handler ) throws SQLException;
 
     void move_fse_node( StoragePoolWrapper pool, String from, String to ) throws IOException, SQLException, PoolReadOnlyException, PathResolveException;
+    void move_fse_node_idx( StoragePoolWrapper pool, long idx, String to ) throws IOException, SQLException, PoolReadOnlyException, PathResolveException;
 
     public void set_ms_times( StoragePoolWrapper pool, long idx, long toJavaTime, long toJavaTime0, long toJavaTime1 ) throws IOException, SQLException, PoolReadOnlyException;
 

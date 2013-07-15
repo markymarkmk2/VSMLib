@@ -32,12 +32,13 @@ public interface RemoteFSApi {
 
     String getName();
 
-    boolean remove_fse_node(  String path ) throws PoolReadOnlyException, SQLException;
-    boolean remove_fse_node(  long idx ) throws PoolReadOnlyException, SQLException;
+    boolean remove_fse_node(  String path ) throws IOException, PoolReadOnlyException, SQLException;
+    boolean remove_fse_node_idx(  long idx ) throws IOException, PoolReadOnlyException, SQLException;
 
     List<RemoteFSElem> get_child_nodes( RemoteFSElem handler ) throws SQLException;
 
     void move_fse_node(  String from, String to ) throws IOException, SQLException, PoolReadOnlyException, PathResolveException;
+    void move_fse_node_idx(  long from, String to ) throws IOException, SQLException, PoolReadOnlyException, PathResolveException;
 
 //    void set_ms_times( RemoteFSElem fseNode, long toJavaTime, long toJavaTime0, long toJavaTime1 ) throws IOException, SQLException, PoolReadOnlyException;
 

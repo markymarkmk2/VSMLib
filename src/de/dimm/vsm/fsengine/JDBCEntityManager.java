@@ -1522,7 +1522,26 @@ public class JDBCEntityManager implements GenericEntityManager
                         field.setAccessible(true);
                         try
                         {
-                            childs = ((LazyList)field.get(o)).getList(this);
+                            Object fo = field.get(o);
+                            if (fo instanceof LazyList)
+                            {
+                                LazyList listField = (LazyList)fo;
+                                if (listField instanceof ArrayLazyList)
+                                {
+                                    throw new SQLException("Invalid List field type " + fo.getClass().getSimpleName());
+                                }
+                                
+                                if (!listField.isRealized())
+                                {
+                                    listField.realizeAndSet(this);
+                                }
+                                childs = listField.getList(this);                            
+                            }
+                            else
+                            {
+                                throw new SQLException("Invalid List field type " + fo.getClass().getSimpleName());
+                            }
+
                         }
                         catch (Exception exception)
                         {
