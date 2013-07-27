@@ -6,6 +6,7 @@
 package de.dimm.vsm.net.interfaces;
 
 import de.dimm.vsm.net.GuiWrapper;
+import java.util.Properties;
 
 /**
  *
@@ -20,4 +21,6 @@ public interface GuiLoginApi
     public GuiServerApi getDummyGuiServerApi();
 
     public boolean isStillValid( GuiWrapper wrapper );
+
+    public Properties getProperties();
 }

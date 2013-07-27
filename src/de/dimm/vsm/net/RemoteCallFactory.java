@@ -167,7 +167,7 @@ class HessianSocketConnectionFactory extends AbstractHessianConnectionFactory
     {
         SocketAddress addr = new InetSocketAddress(url.getHost(), url.getPort());
         HessianNoCloseSocket sock = socketOwner.getSocket();
-
+        
         if (!sock.isConnected() || sock.isClosed())
         {
             sock.close();
@@ -183,7 +183,7 @@ class HessianSocketConnectionFactory extends AbstractHessianConnectionFactory
         }
         
 
-        HessianSocketConnection conn = new HessianSocketConnection( url, sock );
+        HessianSocketConnection conn = new HessianSocketConnection( url, sock );        
         return conn;
     }
 
@@ -296,7 +296,7 @@ public class RemoteCallFactory implements SocketOwner
         try
         {
             Object o = null;
-            String urlName = (ssl)? "https://" : "http://" + adress.getHostAddress() + ":" + port + "/" + context;
+            String urlName = ((ssl)? "https://" : "http://") + adress.getHostAddress() + ":" + port + "/" + context;
             o =  hfactory.create(api, urlName);
 
             return o;

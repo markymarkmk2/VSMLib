@@ -30,7 +30,7 @@ public class MSSSLSocketFactory extends DefaultSSLSocketFactory
     public Socket createSocket( Socket socket, String host, int port, boolean auto_close ) throws IOException
     {
         Socket s = null;
-        char[] password = "mailsecurer".toCharArray();
+        char[] password = "1234fuenf".toCharArray();
         SSLContext sslContext;
 
         try

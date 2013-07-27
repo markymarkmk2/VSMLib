@@ -7,32 +7,33 @@ package de.dimm.vsm.net;
 
 import de.dimm.vsm.auth.User;
 import de.dimm.vsm.net.interfaces.GuiServerApi;
+import java.io.Serializable;
 import java.util.Date;
 
 /**
  *
  * @author Administrator
  */
-public class GuiWrapper
+public class GuiWrapper implements Serializable
 {
     long loginIdx;
-    GuiServerApi api;
+    //GuiServerApi api;
     User user;
     Date lastLogin;
 
     public GuiWrapper( long loginIdx, GuiServerApi api, User user, Date lastLogin )
     {
         this.loginIdx = loginIdx;
-        this.api = api;
+        //this.api = api;
         this.user = user;
         this.lastLogin = lastLogin;
         
     }
 
-    public GuiServerApi getApi()
-    {
-        return api;
-    }
+//    public GuiServerApi getApi()
+//    {
+//        return api;
+//    }
 
     public long getLoginIdx()
     {

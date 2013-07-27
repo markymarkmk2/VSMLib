@@ -132,5 +132,7 @@ public interface GuiServerApi
     public List<MountEntry> getMountedMountEntries();
     public void unMountEntry( MountEntry mountEntry);
     public StoragePoolWrapper mountEntry( User user,  MountEntry mountEntry) throws IOException;
+
+    public Properties getProperties();
     
 }
