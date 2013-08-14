@@ -142,5 +142,31 @@ public class FSE_Bootstrap implements Serializable
     {
         return stream_size;
     }
+
+    public FileSystemElemNode getNode(long idx)
+    {
+        FileSystemElemAttributes attr = new FileSystemElemAttributes();
+        attr.setAccessDateMs(accessDateMs);
+        attr.setAclInfoData(aclInfo);
+        attr.setCreationDateMs(creationDateMs);
+        attr.setDeleted(false);
+        attr.setGid(gid);
+        attr.setModificationDateMs(modificationDateMs);
+        attr.setName(name);
+        attr.setPosixMode(posix_mode);
+        attr.setStreamSize(stream_size);
+        attr.setFsize(file_size);
+        attr.setTs(this_ts);
+        attr.setUid(uid);
+        
+        FileSystemElemNode node = new FileSystemElemNode();
+        node.setFilesystem_type(filesystem_type);
+        node.setIdx(idx);
+        node.setAttributes(attr);
+        
+        return node;        
+    }
+
+   
     
 }

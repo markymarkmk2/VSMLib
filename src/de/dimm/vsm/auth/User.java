@@ -501,7 +501,7 @@ public class User implements Serializable
             else
             {
                 String[] entry = string.split(",");
-                if (entry.length <= 2)
+                if (entry.length < 2)
                     continue;
                 String vsmPath = entry[0].trim();
                 String userPath = entry[1].trim();
@@ -512,6 +512,7 @@ public class User implements Serializable
                 if (vsmPath.charAt(0) != '/')
                     continue;
                 
+                // Read Options
                 boolean readWrite = false;
                 for (int j = 2; j < entry.length; j++)
                 {

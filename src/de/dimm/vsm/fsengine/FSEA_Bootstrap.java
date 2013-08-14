@@ -6,6 +6,7 @@
 package de.dimm.vsm.fsengine;
 
 import de.dimm.vsm.records.FileSystemElemAttributes;
+import de.dimm.vsm.records.FileSystemElemNode;
 import java.io.Serializable;
 
 /**
@@ -122,5 +123,24 @@ public class FSEA_Bootstrap implements Serializable
     {
         return stream_size;
     }
+    
+    public FileSystemElemAttributes getNode(long idx)
+    {
+        FileSystemElemAttributes attr = new FileSystemElemAttributes();
+        attr.setAccessDateMs(accessDateMs);
+        attr.setAclInfoData(aclInfo);
+        attr.setCreationDateMs(creationDateMs);
+        attr.setDeleted(false);
+        attr.setGid(gid);
+        attr.setModificationDateMs(modificationDateMs);
+        attr.setName(name);
+        attr.setPosixMode(posix_mode);
+        attr.setStreamSize(stream_size);
+        attr.setFsize(file_size);
+        attr.setTs(this_ts);
+        attr.setUid(uid);
+                        
+        return attr;        
+    }    
     
 }

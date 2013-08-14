@@ -63,6 +63,7 @@ public interface AgentApi
     boolean close_data(RemoteFSElemWrapper file) throws IOException;
     
     AttributeList get_attributes( RemoteFSElem file );
+    boolean exists(RemoteFSElem file);
     /*
     InputStream open_is_data( RemoteFSElem file) throws IOException;
     InputStream open_is_attribute( RemoteFSElem file, String attr_name) throws IOException;
