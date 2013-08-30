@@ -20,15 +20,15 @@ public interface BootstrapHandle
     public boolean delete();
 
     public void write_bootstrap( FileSystemElemNode node ) throws IOException;
-    public void read_bootstrap( FileSystemElemNode node ) throws IOException;
+//    public void read_bootstrap( FileSystemElemNode node ) throws IOException;
     public void write_bootstrap( FileSystemElemAttributes attr ) throws IOException;
-    public void read_bootstrap( FileSystemElemAttributes attr ) throws IOException;
+//    public void read_bootstrap( FileSystemElemAttributes attr ) throws IOException;
     public void write_bootstrap( HashBlock hb ) throws IOException;
-    public void read_bootstrap( HashBlock hb ) throws IOException;
+//    public void read_bootstrap( HashBlock hb ) throws IOException;
     public void write_bootstrap( XANode xa ) throws IOException;
-    public void read_bootstrap( XANode hb ) throws IOException;
+//    public void read_bootstrap( XANode hb ) throws IOException;
     public void write_bootstrap( PoolNodeFileLink attr ) throws IOException;
-    public void read_bootstrap( PoolNodeFileLink attr ) throws IOException;
+//    public void read_bootstrap( PoolNodeFileLink attr ) throws IOException;
     public <T> void write_object( T object ) throws IOException;
     public <T> T read_object( T object) throws IOException;
     

@@ -51,18 +51,7 @@ public class HB_Bootstrap implements Serializable
         return hb;
     }
     
-    public XANode getXANode( DedupHashBlock dd)
-    {
-        XANode hb = new XANode();
-        hb.setBlockLen(blockLen);
-        hb.setIdx(idx);
-        hb.setBlockOffset(blockOffset);
-        hb.setTs(ts);
-        hb.setReorganize(reorganize);
-        hb.setHashvalue(hashvalue);
-        hb.setDedupBlock(dd);
-        return hb;
-    }    
+  
 
     public void setBlock( HashBlock hb )
     {
@@ -87,6 +76,11 @@ public class HB_Bootstrap implements Serializable
     public long getDedupBlockIdx()
     {
         return dedupBlockIdx;
+    }
+
+    public long getIdx()
+    {
+        return idx;
     }
     
 }

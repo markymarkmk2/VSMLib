@@ -26,6 +26,7 @@ public class FSE_Bootstrap implements Serializable
     int posix_mode;
     long file_size;
     long stream_size;
+    long attr_idx;
     int uid;
     int gid;
     String aclInfo;
@@ -50,6 +51,7 @@ public class FSE_Bootstrap implements Serializable
         uid = node.getUid();
         gid = node.getGid();
         aclInfo = node.getAclInfoData();
+        attr_idx = node.getIdx();
     }
 
     public void setNode( FileSystemElemNode fsenode )
@@ -71,6 +73,7 @@ public class FSE_Bootstrap implements Serializable
         node.setPosixMode(posix_mode);
         node.setUid(uid);
         node.setGid(gid);
+        node.setIdx(attr_idx);
     }
 
     public long getAccessDateMs()
@@ -103,6 +106,12 @@ public class FSE_Bootstrap implements Serializable
         return gid;
     }
 
+    public long getAttrIdx()
+    {
+        return attr_idx;
+    }
+
+    
     public long getModificationDateMs()
     {
         return modificationDateMs;
@@ -158,9 +167,11 @@ public class FSE_Bootstrap implements Serializable
         attr.setFsize(file_size);
         attr.setTs(this_ts);
         attr.setUid(uid);
+        attr.setIdx(attr_idx);
         
         FileSystemElemNode node = new FileSystemElemNode();
         node.setFilesystem_type(filesystem_type);
+        node.setTyp(typ);
         node.setIdx(idx);
         node.setAttributes(attr);
         

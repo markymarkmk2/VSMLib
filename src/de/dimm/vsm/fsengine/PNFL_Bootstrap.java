@@ -48,5 +48,16 @@ public class PNFL_Bootstrap implements Serializable
     {
         node.setIdx(idx);
         node.setCreation( new Date(creationDateMs));
-    }        
+    } 
+
+    public long getFileIdx()
+    {
+        return fileIdx;
+    }
+
+    public long getNodeIdx()
+    {
+        return nodeIdx;
+    }
+    
 }

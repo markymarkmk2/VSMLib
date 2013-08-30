@@ -5,6 +5,7 @@
 
 package de.dimm.vsm.fsengine;
 
+import de.dimm.vsm.records.DedupHashBlock;
 import de.dimm.vsm.records.XANode;
 import java.io.Serializable;
 
@@ -43,5 +44,49 @@ public class XA_Bootstrap implements Serializable
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
-   
+  public XANode getXANode( DedupHashBlock dd)
+    {
+        XANode hb = new XANode();
+        hb.setBlockLen(blockLen);
+        hb.setIdx(idx);
+        hb.setBlockOffset(blockOffset);
+        hb.setTs(ts);
+        hb.setReorganize(reorganize);
+        hb.setHashvalue(hashvalue);
+        hb.setDedupBlock(dd);
+        return hb;
+    }  
+
+    public long getDedupBlockIdx()
+    {
+        return dedupBlockIdx;
+    }
+
+    public int getBlockLen()
+    {
+        return blockLen;
+    }
+
+    public String getHashvalue()
+    {
+        return hashvalue;
+    }
+
+    public long getFileNodeIdx()
+    {
+        return fileNodeIdx;
+    }
+
+    public long getBlockOffset()
+    {
+        return blockOffset;
+    }
+
+    public long getIdx()
+    {
+        return idx;
+    }
+  
+    
+  
 }

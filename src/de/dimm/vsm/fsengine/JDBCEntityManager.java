@@ -1071,6 +1071,12 @@ public class JDBCEntityManager implements GenericEntityManager
         }
     }
  * */
+    boolean suppressNotFound;
+    @Override
+    public void setSuppressNotFound( boolean b)
+    {
+        suppressNotFound = b;
+    }
     
     @Override
     public <T> T em_find( Class<T> t, long idx )
@@ -1098,7 +1104,9 @@ public class JDBCEntityManager implements GenericEntityManager
             rs = ps.executeQuery();
             if (!rs.next())
             {
-                System.out.println("Cannot resolve DB Object " + key);
+                if (!suppressNotFound)
+                    System.out.println("Cannot resolve DB Object " + key);
+                
                 rs.close();
                 removeOpenSet(t.getSimpleName(), pscount);
                 return null;
@@ -1526,7 +1534,7 @@ public class JDBCEntityManager implements GenericEntityManager
                             if (fo instanceof LazyList)
                             {
                                 LazyList listField = (LazyList)fo;
-                                if (listField instanceof ArrayLazyList)
+                                if (!(listField instanceof ArrayLazyList))
                                 {
                                     throw new SQLException("Invalid List field type " + fo.getClass().getSimpleName());
                                 }

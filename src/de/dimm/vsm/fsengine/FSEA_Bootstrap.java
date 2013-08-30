@@ -28,6 +28,7 @@ public class FSEA_Bootstrap implements Serializable
     int uid;
     int gid;
     String aclInfo;
+    long fileIdx;
 
     public FSEA_Bootstrap( FileSystemElemAttributes node )
     {
@@ -43,28 +44,36 @@ public class FSEA_Bootstrap implements Serializable
         uid = node.getUid();
         gid = node.getGid();
         aclInfo = node.getAclInfoData();
+        fileIdx = node.getFile().getIdx();
     }
 
-    public void setNode( FileSystemElemAttributes node )
+    public void setNode( FileSystemElemAttributes attr, FileSystemElemNode node )
     {
-        node.setName(name);
-        node.setAclInfoData(aclInfo);
-        node.setAccessDateMs(accessDateMs);
-        node.setCreationDateMs(creationDateMs);
-        node.setModificationDateMs(modificationDateMs);
+        attr.setName(name);
+        attr.setAclInfoData(aclInfo);
+        attr.setAccessDateMs(accessDateMs);
+        attr.setCreationDateMs(creationDateMs);
+        attr.setModificationDateMs(modificationDateMs);
         //node.setBase_ts(base_ts);
-        node.setTs(this_ts);
-        node.setFsize(file_size);
-        node.setStreamSize(stream_size);
-        node.setPosixMode(posix_mode);
-        node.setUid(uid);
-        node.setGid(gid);
+        attr.setTs(this_ts);
+        attr.setFsize(file_size);
+        attr.setStreamSize(stream_size);
+        attr.setPosixMode(posix_mode);
+        attr.setUid(uid);
+        attr.setGid(gid);
+        attr.setFile(node);
     }
 
     public long getAccessDateMs()
     {
         return accessDateMs;
     }
+
+    public long getFileIdx()
+    {
+        return fileIdx;
+    }
+    
 //
 //    public long getBase_ts()
 //    {
@@ -124,7 +133,7 @@ public class FSEA_Bootstrap implements Serializable
         return stream_size;
     }
     
-    public FileSystemElemAttributes getNode(long idx)
+    public FileSystemElemAttributes getNode(long idx, FileSystemElemNode node)
     {
         FileSystemElemAttributes attr = new FileSystemElemAttributes();
         attr.setAccessDateMs(accessDateMs);
@@ -139,6 +148,8 @@ public class FSEA_Bootstrap implements Serializable
         attr.setFsize(file_size);
         attr.setTs(this_ts);
         attr.setUid(uid);
+        attr.setIdx(idx);
+        attr.setFile(node);
                         
         return attr;        
     }    

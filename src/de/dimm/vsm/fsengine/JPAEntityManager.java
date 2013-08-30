@@ -261,6 +261,10 @@ public class JPAEntityManager implements GenericEntityManager
             tx.rollback();
     }
 
+    public void setSuppressNotFound( boolean b)
+    {
+    
+    }
     public int nativeUpdate( String string )
     {
         em.getTransaction().begin();

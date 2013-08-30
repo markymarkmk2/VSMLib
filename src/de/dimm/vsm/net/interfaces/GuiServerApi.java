@@ -37,7 +37,7 @@ import java.util.Properties;
  *
  * @author Administrator
  */
-public interface GuiServerApi
+public interface GuiServerApi extends UIRecoveryApi
 {
     // WARNING: THIS HAS TO FIT TO RestoreContext ON SERVER!!!!
 
@@ -134,6 +134,5 @@ public interface GuiServerApi
     public StoragePoolWrapper mountEntry( User user,  MountEntry mountEntry) throws IOException;
 
     public Properties getProperties();
-    public List<String> scanDatabase(AbstractStorageNode node)throws SQLException;
     
 }
