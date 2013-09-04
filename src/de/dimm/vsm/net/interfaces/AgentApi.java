@@ -54,6 +54,7 @@ public interface AgentApi
     public static final String OP_FORCE_RSRC = "OP_FORCE_RSRC";
     
     ArrayList<RemoteFSElem> list_dir( RemoteFSElem dir, boolean lazyAclInfo );
+    ArrayList<RemoteFSElem> list_dir_local( RemoteFSElem dir, boolean lazyAclInfo );
     String readAclInfo( RemoteFSElem dir );
     ArrayList<RemoteFSElem> list_roots( );
     ArrayList<RemoteFSElem> list_roots( int mode );
