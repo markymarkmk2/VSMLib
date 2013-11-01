@@ -99,4 +99,6 @@ public interface StoragePoolHandlerInterface {
 
     public long length( StoragePoolWrapper poolWrapper, long idx );
 
+    public void updateAttributes( StoragePoolWrapper poolWrapper, long fileNo, RemoteFSElem elem )throws IOException, SQLException, PoolReadOnlyException;
+
 }

@@ -56,6 +56,14 @@ public class StoragePoolQry implements Serializable
         this.slist = slist;
     }
 
+    @Override
+    public String toString()
+    {
+        return "User " + user.getLoginName() + " RDonly " + Boolean.toString( readOnly );
+    }
+    
+    
+
     public boolean isReadOnly()
     {
         return readOnly;

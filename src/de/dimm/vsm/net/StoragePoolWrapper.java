@@ -42,6 +42,13 @@ public class StoragePoolWrapper implements Serializable, IWrapper
         poolHandlerCreated = _poolHandlerWasCreated;
     }
 
+    @Override
+    public String toString()
+    {
+        return "Pool " + poolIdx + " Agent " + agentIp + " Qry: " + qry;
+    }
+    
+
     public String getBasePath()
     {
         if (StringUtils.isEmpty(mountEntrySubPath))

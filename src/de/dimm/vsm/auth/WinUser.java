@@ -17,7 +17,8 @@ public class WinUser extends User {
     {
         super(userName, loginName, niceName);
         this.samAccount = samAccount;
-        this.ntDomainName = ntDomainName.toUpperCase();
+        if (ntDomainName != null)
+            this.ntDomainName = ntDomainName.toUpperCase();
     }
 
     public String getSamAccount()
