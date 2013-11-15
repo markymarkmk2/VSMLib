@@ -31,6 +31,9 @@ public class WinFileUtilities
 
     public static String win_to_sys_path( String path )
     {
+        if (path.equals("\\"))
+            return "/";
+        
         String[] path_arr = path.split("\\\\");
 
         StringBuilder sb = new StringBuilder();
