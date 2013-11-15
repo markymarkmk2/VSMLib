@@ -8,13 +8,19 @@ package de.dimm.vsm.Utilities;
 import de.dimm.vsm.log.LogListener;
 import de.dimm.vsm.CS_Constants;
 import java.io.UnsupportedEncodingException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 import java.security.spec.AlgorithmParameterSpec;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
@@ -44,13 +50,13 @@ public class CryptTools
 
     public  static String getSha256String( byte[] data ) throws NoSuchAlgorithmException
     {
-        MessageDigest md = null;
+        MessageDigest md;
         md = MessageDigest.getInstance("SHA-256");
         return new String(Base64.encodeBase64(md.digest(data)));
     }
     public  static byte[] getSha256( byte[] data ) throws NoSuchAlgorithmException
     {
-        MessageDigest md = null;
+        MessageDigest md;
         md = MessageDigest.getInstance("SHA-256");
         return md.digest(data);
     }
@@ -88,7 +94,7 @@ public class CryptTools
             result = new String(Base64.encodeBase64(rawHmac));
 
         }
-        catch (Exception e)
+        catch (NoSuchAlgorithmException | InvalidKeyException | IllegalStateException e)
         {
             throw new SignatureException("Failed to generate HMAC : " + e.getMessage());
         }
@@ -122,7 +128,7 @@ public class CryptTools
             return enc;
         }
 
-        catch (Exception ex)
+        catch (NoSuchAlgorithmException | InvalidKeySpecException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException ex)
         {
             if (ll != null)
                 ll.log_msg(LogListener.LVL_ERR, LogListener.TYP_SECURITY, "CryptException", ex);
