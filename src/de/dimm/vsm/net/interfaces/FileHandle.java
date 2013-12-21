@@ -4,8 +4,10 @@
  */
 package de.dimm.vsm.net.interfaces;
 
+import de.dimm.vsm.Exceptions.PathResolveException;
 import de.dimm.vsm.Exceptions.PoolReadOnlyException;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.sql.SQLException;
 
 /**
@@ -28,6 +30,7 @@ public interface FileHandle
     public void truncateFile( long size ) throws IOException, SQLException, PoolReadOnlyException;
     
     public void writeFile( byte[] b, int length, long offset ) throws IOException, SQLException, PoolReadOnlyException;
+    public void writeBlock( String hashValue, byte[] data, int length, long offset ) throws IOException, PathResolveException, PoolReadOnlyException, UnsupportedEncodingException, SQLException;    
 
     public boolean delete() throws PoolReadOnlyException;
 

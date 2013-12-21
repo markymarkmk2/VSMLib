@@ -9,11 +9,13 @@ import de.dimm.vsm.auth.User;
 import de.dimm.vsm.auth.UserManager;
 import de.dimm.vsm.records.FileSystemElemAttributes;
 import de.dimm.vsm.records.FileSystemElemNode;
+import de.dimm.vsm.records.MountEntry;
 import de.dimm.vsm.records.RoleOption;
 import java.io.Serializable;
 import java.nio.file.attribute.AclEntryPermission;
 import java.nio.file.attribute.AclEntryType;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -23,14 +25,66 @@ import java.util.List;
  */
 public class StoragePoolQry implements Serializable
 {
+
+
     private User user;
     private boolean readOnly;
     private long snapShotTs;
     private ArrayList<SearchEntry> slist;
     boolean showDeleted;
+    boolean showVersions;
     boolean useMappingFilter = true; // DEFAULT: USE MAPPING FILTER
     
-    public StoragePoolQry( User user, boolean readOnly, long snapShotTs, boolean showDeleted )
+    
+    public static StoragePoolQry createMountEntryStoragePoolQry(User usr, MountEntry me)
+    {
+        StoragePoolQry qry = null;
+        if (me.getTyp().equals(MountEntry.TYP_RDONLY))
+        {
+            qry = StoragePoolQry.createActualRdOnlyStoragePoolQry(usr, me.isShowDeleted());            
+        }
+        else if (me.getTyp().equals(MountEntry.TYP_RDWR))
+        {
+            qry = StoragePoolQry.createActualRdWrStoragePoolQry(usr, me.isShowDeleted());            
+        }
+        else if (me.getTyp().equals(MountEntry.TYP_SNAPSHOT))
+        {
+            Date timestamp = me.getSnapShot().getCreation();
+            qry = StoragePoolQry.createTimestampStoragePoolQry(usr, timestamp.getTime());
+        }
+        else if (me.getTyp().equals(MountEntry.TYP_TIMESTAMP))
+        {
+            Date timestamp = me.getTs();
+            qry = StoragePoolQry.createTimestampStoragePoolQry(usr, timestamp.getTime());
+        }
+        else if (me.getTyp().equals(MountEntry.TYP_RDONLYMULTI))
+        {
+            qry = StoragePoolQry.createActualRdOnlyStoragePoolQry(usr, me.isShowDeleted());  
+            qry.setShowVersions(true);            
+        }
+        if (qry == null)
+            throw new RuntimeException("Unbekannte MountEntry-Option Typ");
+        
+        return qry;
+    }
+    public static StoragePoolQry createActualRdOnlyStoragePoolQry(User user, boolean showDeleted)
+    {
+        return new StoragePoolQry( user, true, -1, showDeleted);
+    }
+    public static StoragePoolQry createActualRdWrStoragePoolQry(User user, boolean showDeleted)
+    {
+        return new StoragePoolQry( user, false, -1, showDeleted);
+    }
+    public static StoragePoolQry createTimestampStoragePoolQry(User user, long snapShotTs)
+    {
+        return new StoragePoolQry( user, true, snapShotTs, false);
+    }
+    public static StoragePoolQry createSearchlistStoragePoolQry(User user,  ArrayList<SearchEntry> slist)
+    {
+        return new StoragePoolQry( user, slist);
+    }
+    
+    private StoragePoolQry( User user, boolean readOnly, long snapShotTs, boolean showDeleted )
     {
         this.user = user;
         this.readOnly = readOnly;
@@ -42,12 +96,12 @@ public class StoragePoolQry implements Serializable
             this.readOnly = true;        
     }
 
-    public StoragePoolQry( User user, boolean readOnly, long snapShotTs )
+    private StoragePoolQry( User user, boolean readOnly, long snapShotTs )
     {
         this(user, readOnly, snapShotTs, false);
     }
 
-    public StoragePoolQry(  User user, ArrayList<SearchEntry> slist )
+    private StoragePoolQry(  User user, ArrayList<SearchEntry> slist )
     {
         this.user = user;
         if (!user.isAdmin() && !user.hasRoleOption(RoleOption.RL_READ_WRITE))
@@ -457,5 +511,16 @@ public class StoragePoolQry implements Serializable
 
         return user.getFsMapper().isReadWrite( path );
     }
+
+    private void setShowVersions( boolean showVersions )
+    {
+        this.showVersions = showVersions;
+    }
+
+    public boolean isShowVersions()
+    {
+        return showVersions;
+    }
+    
 
 }

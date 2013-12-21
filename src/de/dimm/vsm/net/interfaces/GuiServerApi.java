@@ -15,6 +15,7 @@ import de.dimm.vsm.net.ScheduleStatusEntry;
 import de.dimm.vsm.net.SearchEntry;
 import de.dimm.vsm.net.SearchStatus;
 import de.dimm.vsm.net.SearchWrapper;
+import de.dimm.vsm.net.StoragePoolQry;
 import de.dimm.vsm.net.StoragePoolWrapper;
 import de.dimm.vsm.records.AbstractStorageNode;
 import de.dimm.vsm.records.ArchiveJob;
@@ -58,11 +59,8 @@ public interface GuiServerApi extends UIRecoveryApi
     StoragePoolWrapper getMounted( String agentIp, int agentPort, StoragePool pool );
     boolean remountVolume( StoragePoolWrapper wrapper );
 
-    StoragePoolWrapper openPoolView( StoragePool pool, Date timestamp, String subPath, User user );
-    StoragePoolWrapper openPoolView( StoragePool pool, boolean rdonly, String subPath, User user );
-    StoragePoolWrapper openPoolView( StoragePool pool, boolean rdonly, boolean showDeleted, String subPath, User user );
-    StoragePoolWrapper openPoolView( StoragePool pool, boolean rdonly, FileSystemElemNode node, User user );
-    StoragePoolWrapper openPoolView( StoragePool pool, boolean rdonly,  boolean showDeleted, FileSystemElemNode node, User user );
+    StoragePoolWrapper openPoolView( StoragePool pool, StoragePoolQry qry, String subPath );
+    StoragePoolWrapper openPoolView( StoragePool pool, StoragePoolQry qry, FileSystemElemNode node );
     List<RemoteFSElem> listDir( StoragePoolWrapper wrapper, RemoteFSElem path ) throws SQLException;
     void closePoolView( StoragePoolWrapper wrapper );
     boolean removeFSElem( IWrapper wrapper, RemoteFSElem path ) throws SQLException, PoolReadOnlyException;
@@ -70,7 +68,9 @@ public interface GuiServerApi extends UIRecoveryApi
     boolean deleteFSElem( IWrapper wrapper, RemoteFSElem path ) throws SQLException, PoolReadOnlyException;
     boolean restoreFSElem( IWrapper wrapper, RemoteFSElem path, String targetIP, int targetPort, String targetPath, int flags, User user ) throws SQLException, PoolReadOnlyException, IOException;
     boolean restoreFSElems( IWrapper wrapper, List<RemoteFSElem> path, String targetIP, int targetPort, String targetPath, int flags, User user ) throws SQLException, PoolReadOnlyException, IOException;
-
+    boolean restoreVersionedFSElem( IWrapper wrapper, RemoteFSElem path, String targetIP, int targetPort, String targetPath, int flags, User user ) throws SQLException, PoolReadOnlyException, IOException;
+    boolean restoreVersionedFSElems( IWrapper wrapper, List<RemoteFSElem> paths, String targetIP, int targetPort, String targetPath, int flags, User user ) throws PoolReadOnlyException, SQLException, IOException;
+    
     public FileSystemElemNode createFileSystemElemNode( StoragePool pool, String path, String type )throws IOException,  PoolReadOnlyException, PathResolveException;
     public FileSystemElemNode createFileSystemElemNode( StoragePoolWrapper wrapper, String path, String type )throws IOException,  PoolReadOnlyException, PathResolveException;
 
@@ -134,5 +134,7 @@ public interface GuiServerApi extends UIRecoveryApi
     public StoragePoolWrapper mountEntry( User user,  MountEntry mountEntry) throws IOException;
 
     public Properties getProperties();
+    
+    List<RemoteFSElem> listVersions( IWrapper wrapper, RemoteFSElem path ) throws SQLException, IOException;
     
 }

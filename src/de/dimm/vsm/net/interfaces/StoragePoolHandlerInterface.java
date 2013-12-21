@@ -68,7 +68,9 @@ public interface StoragePoolHandlerInterface {
 
     public void close_fh( StoragePoolWrapper pool, long idx ) throws IOException;
 
-    public void writeFile( StoragePoolWrapper pool, long idx, byte[] b, int length, long offset ) throws IOException, SQLException, PoolReadOnlyException;
+    public void writeFile ( StoragePoolWrapper pool, long idx, byte[] data, int length, long offset ) throws IOException, SQLException, PoolReadOnlyException;
+    public void writeBlock( StoragePoolWrapper pool, long idx, String hash, byte[] b, int length, long offset ) throws IOException, SQLException, PoolReadOnlyException, PathResolveException;
+    public boolean checkBlock( StoragePoolWrapper pool, String hash ) throws IOException, SQLException;
 
     void set_attribute( StoragePoolWrapper pool, RemoteFSElem fseNode, String string, Integer valueOf ) throws IOException, SQLException, PoolReadOnlyException;
 

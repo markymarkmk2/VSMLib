@@ -63,6 +63,7 @@ public interface RemoteFSApi {
     void truncateFile( long idx, long size )throws IOException, SQLException, PoolReadOnlyException;
 
     void writeFile( long idx, byte[] b, int length, long offset )throws IOException, SQLException, PoolReadOnlyException;
+    void writeBlock( long idx, String hash, byte[] b, int length, long offset ) throws IOException, SQLException, PoolReadOnlyException, PathResolveException;
 
    
 }
