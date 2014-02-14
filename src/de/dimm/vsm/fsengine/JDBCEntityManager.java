@@ -797,6 +797,11 @@ public class JDBCEntityManager implements GenericEntityManager
         // FIRST DETECT ADDITIONAL WHERE / ORDER STATEMENTS
         int where_clause_idx = string.toLowerCase().indexOf(" where ");
 
+        // IGNORE ALL , AFTER WHERE, THIS CPOULD BE ORDER OR QUERY CONTENT
+        if (altTableIdx > 0 && where_clause_idx != -1 && altTableIdx > where_clause_idx)
+        {
+            altTableIdx = -1;
+        }
 
         if (altTableIdx > 0 && where_clause_idx == -1)
         {

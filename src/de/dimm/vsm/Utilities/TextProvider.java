@@ -13,4 +13,5 @@ public interface TextProvider
 {
 
     public String Txt(String key);
+    public String GuiTxt(String key);
 }

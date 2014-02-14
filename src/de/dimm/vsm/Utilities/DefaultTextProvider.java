@@ -14,6 +14,12 @@ class EmptyTextProvider implements TextProvider
         key = key.replace('_', ' ');
         return key;
     }
+    @Override
+    public String GuiTxt( String key )
+    {
+        key = key.replace('_', ' ');
+        return key;
+    }
 }
 
 /**

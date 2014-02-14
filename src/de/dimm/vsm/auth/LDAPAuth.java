@@ -311,34 +311,37 @@ public class LDAPAuth extends GenericRealmAuth
         return ctx != null;
     }
 
-    public Set<String> list_groups(String name, String rootName) throws NamingException
+
+ private void list_groups(Set<String> set, String name, String rootName) throws NamingException
     {
         String group = "group";
         if (groupIdentifier != null && !groupIdentifier.isEmpty())
             group = groupIdentifier;
 
         // AD NEEDS DN == getUSERNAME
-        
         Set<String> groups =  list_dn_qry("cn", "(memberUid=" + name + ")(objectClass=" + group + ")");
-        
-        Set<String> ret = new HashSet<>(groups);
+                        
         
         // List nested Groups
         for (String groupEntry : groups)
         {
+            if (set.contains(groupEntry))
+                continue;
             // Skip Recursive Loops
-            if (groupEntry.equals(rootName))
+            if (groupEntry.equalsIgnoreCase(rootName))
+                continue;
+            if (groupEntry.equalsIgnoreCase(name))
                 continue;
 
-            Set<String> subGroups =  list_groups(groupEntry, rootName);
-            
-            ret.addAll(subGroups);
+            set.add(groupEntry);
+            list_groups(set, groupEntry, rootName);    
         }
-        return ret;
-    }
+    }    
     public Set<String> list_groups(String name) throws NamingException
     {
-        return list_groups(name, name);
+        Set<String> set = new HashSet<>();
+        list_groups(set, name, name);
+        return set;
     }
 
     
