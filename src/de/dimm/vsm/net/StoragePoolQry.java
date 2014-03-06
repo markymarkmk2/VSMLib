@@ -81,7 +81,9 @@ public class StoragePoolQry implements Serializable
     }
     public static StoragePoolQry createSearchlistStoragePoolQry(User user,  ArrayList<SearchEntry> slist)
     {
-        return new StoragePoolQry( user, slist);
+        StoragePoolQry qry =  new StoragePoolQry( user, slist);
+        
+        return qry;
     }
     
     private StoragePoolQry( User user, boolean readOnly, long snapShotTs, boolean showDeleted )
@@ -107,6 +109,8 @@ public class StoragePoolQry implements Serializable
         if (!user.isAdmin() && !user.hasRoleOption(RoleOption.RL_READ_WRITE))
             this.readOnly = true;
         
+        // Suchlisten haben kein Mapping, nur Suchergebnisse, Ist kein VSM.Dateisystem
+        useMappingFilter = false;
         this.slist = slist;
     }
 

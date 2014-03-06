@@ -43,6 +43,17 @@ public class UserManager
         return u;
     }
 
+    public Role getRole(String roleName)
+    {
+        for (int i = 0; i < roles.size(); i++)
+        {
+            Role role = roles.get(i);
+            if (role.getName().equals( roleName))
+                return role;
+        }
+        return null;
+    }
+
     public void addUser( String username, User user )
     {
          userMap.put(username, user);

@@ -1539,7 +1539,8 @@ public class JDBCEntityManager implements GenericEntityManager
                             if (fo instanceof LazyList)
                             {
                                 LazyList listField = (LazyList)fo;
-                                if (listField instanceof ArrayLazyList)
+
+                                if (!(listField instanceof ArrayLazyList))
                                 {
                                     throw new SQLException("Invalid List field type " + fo.getClass().getSimpleName());
                                 }
