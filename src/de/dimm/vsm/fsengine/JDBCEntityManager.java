@@ -174,10 +174,10 @@ public class JDBCEntityManager implements GenericEntityManager
     {
         if (jdbcConnection != null)
         {
-
+            if (tx != null)
+                openCommits--;
             jdbcConnection.commit();
             jdbcConnection.close();
-            openCommits--;
         }
         LogManager.msg_db(LogManager.LVL_INFO, "ReOpening connection " + this.toString() );
         
@@ -488,7 +488,8 @@ public class JDBCEntityManager implements GenericEntityManager
         try
         {
             jdbcConnection.commit();
-            openCommits--;
+            if (tx != null)
+                openCommits--;
         }
         catch (SQLException ex)
         {
@@ -1540,10 +1541,12 @@ public class JDBCEntityManager implements GenericEntityManager
                             {
                                 LazyList listField = (LazyList)fo;
 
-                                if (!(listField instanceof ArrayLazyList))
-                                {
-                                    throw new SQLException("Invalid List field type " + fo.getClass().getSimpleName());
-                                }
+                                // Prüfung auf non ArrayLazyList ist falsch, wird entfernt
+                                // Wenn jemand Cascade remove setzt, dann muss er wissen, was er tut
+//                                if (!(listField instanceof ArrayLazyList))
+//                                {
+//                                    throw new SQLException("Invalid List field type " + fo.getClass().getSimpleName());
+//                                }
                                 
                                 if (!listField.isRealized())
                                 {
@@ -2480,9 +2483,10 @@ public class JDBCEntityManager implements GenericEntityManager
     {
         if (jdbcConnection != null)
         {
+            if (tx != null)
+                openCommits--;
             jdbcConnection.commit();
             jdbcConnection.close();
-            openCommits--;
         }
         this.jdbcConnection = conn;
     }
