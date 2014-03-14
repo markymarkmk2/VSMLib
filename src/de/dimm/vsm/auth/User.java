@@ -6,6 +6,7 @@
 package de.dimm.vsm.auth;
 
 import de.dimm.vsm.fsengine.ArrayLazyList;
+import de.dimm.vsm.hash.StringUtils;
 import de.dimm.vsm.net.RemoteFSElem;
 import de.dimm.vsm.records.FileSystemElemNode;
 import de.dimm.vsm.records.Role;
@@ -13,7 +14,6 @@ import de.dimm.vsm.records.RoleOption;
 import java.io.File;
 import java.io.FileReader;
 import java.io.Serializable;
-import java.lang.String;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +30,14 @@ public class User implements Serializable
     String loginName;
     String niceName;
     Map<String,Integer> groups;
+    
+    public static final String FS_MAPPINGFOLDER = "fsmapping";
+    
+    boolean ignoreAcl;
+    Role role;
+   
+    VsmFsMapper fsMapper;
+    
 
     public boolean isAllowed( String principalName )
     {
@@ -46,16 +54,8 @@ public class User implements Serializable
 
     public boolean isMemberOfGroup( String gname )
     {
-        return groups.containsKey(gname);
-//        for (int j = 0; j < groups.size(); j++)
-//        {
-//            String group = groups.get(j);
-//            if (group.equalsIgnoreCase(principalName))
-//            {
-//                return true;
-//            }
-//        }
-//        return false;
+        return groups.containsKey(gname.toLowerCase());
+
     }
 
     public class VsmFsMapper implements Serializable
@@ -301,16 +301,9 @@ public class User implements Serializable
         public String toString() {
             return vPath + " -> " + uPath;
         }
-        
-
-       
-    }
-    public static final String FS_MAPPINGFOLDER = "fsmapping";
-    
-    boolean ignoreAcl;
-    Role role;
    
-    VsmFsMapper fsMapper;
+    }
+
 
     public User( String userName, String loginName, String niceName )
     {
@@ -318,7 +311,7 @@ public class User implements Serializable
         this.niceName = niceName;
         this.loginName = loginName;
         
-        groups = new HashMap<String,Integer>();
+        groups = new HashMap<>();
         
         fsMapper = new VsmFsMapper();
     }
@@ -331,7 +324,7 @@ public class User implements Serializable
             Integer gid = -1; 
             if (gids != null)
                 gid = gids.get(i);
-            this.groups.put(groups.get(i), gid );
+            this.groups.put(groups.get(i).toLowerCase(), gid );
         }
     }
     public void setGroups( Set<String> groups)
@@ -339,14 +332,10 @@ public class User implements Serializable
         this.groups.clear();
         for (String group : groups)
         {
-            this.groups.put(group, -1 );
+            this.groups.put(group.toLowerCase(), -1 );
         }
     }
-
-//    public List<String> getGroups()
-//    {
-//        return groups;
-//    }
+    
 
     public String getNiceName()
     {
@@ -394,7 +383,7 @@ public class User implements Serializable
     {
         User user = new User("system", "system", "system");
         Role role = new Role();
-        ArrayLazyList<RoleOption> rolist = new ArrayLazyList<RoleOption>();
+        ArrayLazyList<RoleOption> rolist = new ArrayLazyList<>();
         rolist.add(new RoleOption(0, role, RoleOption.RL_ADMIN, 0, ""));
         rolist.add(new RoleOption(0, role, RoleOption.RL_READ_WRITE, 0, ""));
         role.setRoleOptions(rolist);
@@ -431,29 +420,26 @@ public class User implements Serializable
     {
         fsMapper.getVsmList().clear();
 
-        String content = null;
+        
         for (int i = 0; i < role.getRoleOptions().size(); i++)
         {
+            String content = null;
             RoleOption opt =  role.getRoleOptions().get(i);
             if (opt.getToken() == null || !opt.getToken().equals(RoleOption.RL_FSMAPPINGFILE))
                 continue;
 
             final File f = new File( FS_MAPPINGFOLDER,opt.getOptionStr());
-            try
+           
+            try (FileReader fw = new FileReader(f))
             {
                 char[] cbuff = new char[(int)f.length()];
-                FileReader fw = new FileReader(f);
                 fw.read(cbuff);
-                fw.close();
-
                 content = new String(cbuff);
             }
             catch (Exception iOException)
             {
                 throw new IllegalArgumentException( "Fehler beim Lesen der Mappingdatei" , iOException);
             }
-            if (content == null)
-                continue;
 
             loadVsmMappingContent( content );
         }
@@ -461,6 +447,9 @@ public class User implements Serializable
 
     private void loadVsmMappingContent( String s )
     {
+        if (StringUtils.isEmpty(s))
+            return;
+        
         s = s.replace('\r', '\n');
         String[] arr = s.split("\n");
         for (int i = 0; i < arr.length; i++)
