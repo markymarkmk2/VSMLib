@@ -70,6 +70,7 @@ public interface GuiServerApi extends UIRecoveryApi
     boolean restoreFSElems( IWrapper wrapper, List<RemoteFSElem> path, String targetIP, int targetPort, String targetPath, int flags, User user ) throws SQLException, PoolReadOnlyException, IOException;
     boolean restoreVersionedFSElem( IWrapper wrapper, RemoteFSElem path, String targetIP, int targetPort, String targetPath, int flags, User user ) throws SQLException, PoolReadOnlyException, IOException;
     boolean restoreVersionedFSElems( IWrapper wrapper, List<RemoteFSElem> paths, String targetIP, int targetPort, String targetPath, int flags, User user ) throws PoolReadOnlyException, SQLException, IOException;
+    boolean isWrapperValid(IWrapper wrapper);
     
     public FileSystemElemNode createFileSystemElemNode( StoragePool pool, String path, String type )throws IOException,  PoolReadOnlyException, PathResolveException;
     public FileSystemElemNode createFileSystemElemNode( StoragePoolWrapper wrapper, String path, String type )throws IOException,  PoolReadOnlyException, PathResolveException;
