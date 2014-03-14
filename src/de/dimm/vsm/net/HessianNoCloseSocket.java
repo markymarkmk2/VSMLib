@@ -46,12 +46,14 @@ class NoCLoseInputStream extends FilterInputStream
 public class HessianNoCloseSocket  extends Socket
 {
     NoCLoseInputStream is;
-    int timeout;
+    int connTimeout;
+    int txTimeout;
 
-    public HessianNoCloseSocket( int timeout )
+    public HessianNoCloseSocket( int connTimeout, int txTimeout )
     {
         this.is = null;
-        this.timeout = timeout;
+        this.connTimeout = connTimeout;
+        this.txTimeout = txTimeout;
     }
 
 
@@ -65,10 +67,9 @@ public class HessianNoCloseSocket  extends Socket
     @Override
     public void connect( SocketAddress endpoint ) throws IOException
     {
-
-        // Annahme: Wenn COnnect klappt, dann ist RECV Timeout sicher, wenn 10* solang, Blockgrößen sind 1M max
-        super.connect(endpoint, timeout);
-        setSoTimeout(timeout*10);
+        super.connect(endpoint, connTimeout);
+        if (txTimeout > 0)
+            setSoTimeout(txTimeout);
         is = new NoCLoseInputStream(super.getInputStream());
     }
 

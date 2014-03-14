@@ -152,12 +152,14 @@ class HessianSocketConnectionFactory extends AbstractHessianConnectionFactory
       int maxConnections = 10;
       int maxConnectionsPerHost = 10;
       SocketOwner socketOwner;
-      int timeout;
+      int connTimeout;
+      int txTimeout;
 
-    public HessianSocketConnectionFactory(SocketOwner owner, int timeout)
+    public HessianSocketConnectionFactory(SocketOwner owner, int timeout, int txTimeout)
     {
         this.socketOwner = owner;
-        this.timeout = timeout;
+        this.connTimeout = timeout;
+        this.txTimeout = txTimeout;
     }
 
 
@@ -171,7 +173,7 @@ class HessianSocketConnectionFactory extends AbstractHessianConnectionFactory
         if (!sock.isConnected() || sock.isClosed())
         {
             sock.close();
-            sock = new HessianNoCloseSocket(timeout);
+            sock = new HessianNoCloseSocket(connTimeout, txTimeout);
             sock.setTcpNoDelay(true);
             sock.setSendBufferSize(512*1024);
             sock.setReceiveBufferSize(512*1024);
@@ -203,24 +205,23 @@ public class RemoteCallFactory implements SocketOwner
      String context;
      boolean tcp;
      HessianNoCloseSocket sock;
-     int timeout = 2000;
+     int connTimeout;
+     int txTimeout;
 
-    public RemoteCallFactory( InetAddress adress, int port, String context, boolean ssl, boolean tcp ) throws MalformedURLException
+    public RemoteCallFactory( InetAddress adress, int port, String context, boolean ssl, boolean tcp, int connTimeout, int txTimeout  ) throws MalformedURLException
     {
         this.port = port;
         this.ssl = ssl;
         this.adress = adress;
         this.context = context;
         this.tcp = tcp;
+        this.connTimeout = connTimeout;
+        this.txTimeout = txTimeout;
         hfactory = new HessianProxyFactory();
         
-       
+              
 
-
-
-        String urlName = null;
-
-        urlName = (ssl)? "https://" : "http://" + adress.getHostAddress() + ":" + port + "/" + context;
+        //String urlName = (ssl)? "https://" : "http://" + adress.getHostAddress() + ":" + port + "/" + context;
 
         
         // Workaround for http://bugs.caucho.com/view.php?id=3634
@@ -245,7 +246,7 @@ public class RemoteCallFactory implements SocketOwner
 
     public void setConnectTimeout( int timeout )
     {
-        this.timeout = timeout;
+        this.connTimeout = timeout;
     }
 
 
@@ -254,8 +255,8 @@ public class RemoteCallFactory implements SocketOwner
         if (sock != null)
         {
             sock.realClose();
-            sock = new HessianNoCloseSocket(timeout);
-            hfactory.setConnectionFactory( new HessianSocketConnectionFactory(this, timeout));
+            sock = new HessianNoCloseSocket(connTimeout, txTimeout);
+            hfactory.setConnectionFactory( new HessianSocketConnectionFactory(this, connTimeout, txTimeout));
             sock.connect(new InetSocketAddress(adress, port));
         }
     }
@@ -289,8 +290,8 @@ public class RemoteCallFactory implements SocketOwner
     {        
         if (tcp)
         {
-            sock = new HessianNoCloseSocket(timeout);
-            hfactory.setConnectionFactory( new HessianSocketConnectionFactory(this, timeout));
+            sock = new HessianNoCloseSocket(connTimeout, txTimeout);
+            hfactory.setConnectionFactory( new HessianSocketConnectionFactory(this, connTimeout, txTimeout));
         }
         
         try
