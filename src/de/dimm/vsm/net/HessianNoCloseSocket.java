@@ -66,7 +66,9 @@ public class HessianNoCloseSocket  extends Socket
     public void connect( SocketAddress endpoint ) throws IOException
     {
 
+        // Annahme: Wenn COnnect klappt, dann ist RECV Timeout sicher, wenn 10* solang, Blockgrößen sind 1M max
         super.connect(endpoint, timeout);
+        setSoTimeout(timeout*10);
         is = new NoCLoseInputStream(super.getInputStream());
     }
 
