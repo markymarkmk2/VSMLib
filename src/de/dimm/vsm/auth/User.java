@@ -11,6 +11,7 @@ import de.dimm.vsm.net.RemoteFSElem;
 import de.dimm.vsm.records.FileSystemElemNode;
 import de.dimm.vsm.records.Role;
 import de.dimm.vsm.records.RoleOption;
+import de.dimm.vsm.records.StoragePool;
 import java.io.File;
 import java.io.FileReader;
 import java.io.Serializable;
@@ -253,13 +254,15 @@ public class User implements Serializable
         String vPath;
         String uPath;
         boolean readWrite;
+        String poolName;
 
-        public VsmFsEntry( String vPath, String uPath, boolean readWrite )
+        public VsmFsEntry( String vPath, String uPath, boolean readWrite, String poolName )
         {
             this.vPath = vPath;
             this.uPath = uPath;
             this.readWrite = readWrite;
-            vPathLen = vPath.length();            
+            vPathLen = vPath.length();  
+            this.poolName = poolName;
         }
 
         public int getvPathLen()
@@ -267,6 +270,7 @@ public class User implements Serializable
             return vPathLen;
         }
 
+       
         
         public String getuPath()
         {
@@ -282,6 +286,12 @@ public class User implements Serializable
         {
             return readWrite;
         }
+
+        public String getPoolName()
+        {
+            return poolName;
+        }
+        
         
 
         public boolean isAllowed(String path)
@@ -300,6 +310,14 @@ public class User implements Serializable
         @Override
         public String toString() {
             return vPath + " -> " + uPath;
+        }
+
+        public boolean isPool( StoragePool pool )
+        {
+            if (StringUtils.isEmpty(poolName))
+                return true;
+            
+            return poolName.equals(pool.getName());
         }
    
     }
@@ -503,13 +521,21 @@ public class User implements Serializable
                 
                 // Read Options
                 boolean readWrite = false;
+                String poolName = null;
                 for (int j = 2; j < entry.length; j++)
                 {
                     if (entry[j].trim().toLowerCase().equals("rw"))
+                    {
                         readWrite = true;
+                    }
+                    
+                    if (entry[j].trim().toLowerCase().startsWith("pool:"))
+                    {
+                        poolName = entry[j].trim().substring("pool:".length());
+                    }
                 }
                 
-                fsMapper.getVsmList().add( new VsmFsEntry(vsmPath, userPath, readWrite));
+                fsMapper.getVsmList().add( new VsmFsEntry(vsmPath, userPath, readWrite, poolName));
             }
         }
     }
@@ -518,9 +544,4 @@ public class User implements Serializable
     {
         return fsMapper.mapVsmToUserPath(path);
     }
-
-
-    
-
-
 }
