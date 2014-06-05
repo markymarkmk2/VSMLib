@@ -52,6 +52,7 @@ import net.sf.ehcache.Element;
 import net.sf.ehcache.Statistics;
 import net.sf.ehcache.event.CacheEventListener;
 import net.sf.ehcache.event.CacheEventListenerAdapter;
+import org.apache.derby.jdbc.ClientDataSource;
 
 class NewIndexEntry
 {
@@ -233,28 +234,62 @@ public class JDBCEntityManager implements GenericEntityManager
 
             if (url.startsWith("jdbc:derby"))
             {
-                Class cl = Class.forName("org.apache.derby.jdbc.EmbeddedConnectionPoolDataSource");
-                cds = (ConnectionPoolDataSource) cl.newInstance();
-                org.apache.derby.jdbc.EmbeddedDataSource derby_cds = (org.apache.derby.jdbc.EmbeddedDataSource)cds;
-                derby_cds.setDatabaseName ("c:/temp/testDB");
-
-                String start = "jdbc:derby:";
-                String[] urlParts = url.substring(start.length()).split(";");
-                String db = urlParts[0];
-                derby_cds.setDatabaseName(db);
-                derby_cds.setUser(user.toString());
-                derby_cds.setPassword(pwd.toString());
+                Class cl;
+                if (!url.contains( "//")) {
+                    cl = Class.forName("org.apache.derby.jdbc.EmbeddedConnectionPoolDataSource");
+                    cds = (ConnectionPoolDataSource) cl.newInstance();
+                    org.apache.derby.jdbc.EmbeddedDataSource derby_cds = (org.apache.derby.jdbc.EmbeddedDataSource)cds;
+                    derby_cds.setDatabaseName ("c:/temp/testDB");
 
 
+                    String start = "jdbc:derby:";
+                    String[] urlParts = url.substring(start.length()).split(";");
+                    String db = urlParts[0];
+                    derby_cds.setDatabaseName(db);
+                    derby_cds.setUser(user.toString());
+                    derby_cds.setPassword(pwd.toString());
 
-                for (int i = 1; i < urlParts.length; i++)
-                {
-                    String string = urlParts[i];
-                    if (string.indexOf("create=true") >= 0)
+
+
+                    for (int i = 1; i < urlParts.length; i++)
                     {
-                        derby_cds.setCreateDatabase ("create");
+                        String string = urlParts[i];
+                        if (string.indexOf("create=true") >= 0)
+                        {
+                            derby_cds.setCreateDatabase ("create");
+                        }
+                    }                    
+                }
+                else {
+                    cl = Class.forName("org.apache.derby.jdbc.ClientConnectionPoolDataSource");
+                    cds = (ConnectionPoolDataSource) cl.newInstance();
+                    org.apache.derby.jdbc.ClientDataSource derby_cds = (org.apache.derby.jdbc.ClientDataSource)cds;
+                    String networkUrl[] = url.split( "//");
+                    if (networkUrl.length != 3)
+                        throw new IOException( "Invalid Network Url for Database " + url);
+                    
+                    String dbNameWithOpts = "/" + networkUrl[2];
+                    
+                    String[] urlParts = dbNameWithOpts.split(";");
+                    String db = urlParts[0];
+                    derby_cds.setDatabaseName(db);
+                    derby_cds.setUser(user.toString());
+                    derby_cds.setPassword(pwd.toString());
+                    String network[] = networkUrl[1].split( ":");
+                                        
+                    derby_cds.setPortNumber( Integer.parseInt( network[1]) );
+                    derby_cds.setServerName( network[0]);
+
+                    for (int i = 1; i < urlParts.length; i++)
+                    {
+                        String string = urlParts[i];
+                        if (string.indexOf("create=true") >= 0)
+                        {
+                            derby_cds.setCreateDatabase ("create");
+                        }
                     }
                 }
+                
             }
 
 
