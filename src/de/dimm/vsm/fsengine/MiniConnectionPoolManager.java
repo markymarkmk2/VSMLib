@@ -4,6 +4,7 @@
  */
 package de.dimm.vsm.fsengine;
 
+import de.dimm.vsm.log.LogManager;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -149,7 +150,9 @@ public class MiniConnectionPoolManager implements JDBCConnectionFactory
      */
     public Connection createConnection() throws SQLException
     {
-        return getConnection2(timeoutMs);
+        Connection conn = getConnection2(timeoutMs);
+        logSize( "createConnection");
+        return conn; 
     }
 
     private Connection getConnection2( long timeoutMs ) throws SQLException
@@ -185,8 +188,12 @@ public class MiniConnectionPoolManager implements JDBCConnectionFactory
             if (!ok)
             {
                 semaphore.release();
-            }
+            }            
         }
+    }
+    private void logSize(String str) {
+        LogManager.msg_db(LogManager.LVL_DEBUG, str + ": MPM: Sema: " + semaphore.availablePermits() + " activeConn: " + 
+                    activeConnections + " recConn: " + recycledConnections.size() );
     }
 
     private synchronized Connection getConnection3() throws SQLException
@@ -407,12 +414,14 @@ public class MiniConnectionPoolManager implements JDBCConnectionFactory
         {
             PooledConnection pconn = (PooledConnection) event.getSource();
             recycleConnection(pconn);
+            logSize( "connectionClosed");
         }
 
         public void connectionErrorOccurred( ConnectionEvent event )
         {
             PooledConnection pconn = (PooledConnection) event.getSource();
             disposeConnection(pconn);
+            logSize( "connectionError");
         }
     }
 

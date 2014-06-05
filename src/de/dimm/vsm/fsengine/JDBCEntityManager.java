@@ -105,7 +105,7 @@ class FieldEntry
  */
 public class JDBCEntityManager implements GenericEntityManager
 {
-    public static final int MAX_CONNECTIONS = 50;
+    public static int MAX_CONNECTIONS = 100;
 
     //static MiniConnectionPoolManager poolManager = null;
 
