@@ -82,6 +82,7 @@ public class NetServer
         http_config.setSendServerVersion(true);
         http_config.setSendDateHeader(false);
         
+        
         SslContextFactory sslContextFactory = new SslContextFactory(keypwd);
         if (new File(keystore).exists())
         {
@@ -118,6 +119,7 @@ public class NetServer
             new SslConnectionFactory(sslContextFactory,"http/1.1"),
             new HttpConnectionFactory(https_config));
         sslConnector.setPort(port);
+        
         server.addConnector(sslConnector);    
     }
     void initStandard( Server server, int port)
@@ -141,25 +143,17 @@ public class NetServer
     {
         // Setup Threadpool
         QueuedThreadPool threadPool = new QueuedThreadPool();
-        threadPool.setMaxThreads(500);
+        threadPool.setMaxThreads(100);
+        threadPool.setName("Web" + ((ssl)?"Ssl":""));        
 
         // Server
         jetty_server = new Server(threadPool);        
+        
         //jetty_server = new Server(port);
         if (ssl)
         {
             initSsl( jetty_server, port, keystore, keypwd);
-            /*SslSocketConnector connector = new SslSocketConnector();
-            connector.setPort(port);
-
-            connector.setKeyPassword(keypwd);
-            connector.setKeystore(keystore);
-
-
-            jetty_server.setConnectors(new Connector[]
-            {
-                connector
-            });*/
+            
         }
         else
         {

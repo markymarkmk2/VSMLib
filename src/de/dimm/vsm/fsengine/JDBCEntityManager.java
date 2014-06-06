@@ -30,8 +30,10 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import javax.persistence.CascadeType;
@@ -52,7 +54,11 @@ import net.sf.ehcache.Element;
 import net.sf.ehcache.Statistics;
 import net.sf.ehcache.event.CacheEventListener;
 import net.sf.ehcache.event.CacheEventListenerAdapter;
-import org.apache.derby.jdbc.ClientDataSource;
+import org.catacombae.jfuse.util.Log;
+
+
+
+
 
 class NewIndexEntry
 {
@@ -135,6 +141,14 @@ public class JDBCEntityManager implements GenericEntityManager
     HashMap<String, PreparedStatement> updateStatementMap;
     HashMap<String, PreparedStatement> newIndexStatementMap;
 
+    
+    PreparedStatement stDelPoolNodeFileLink = null;
+    PreparedStatement stDelFileSystemElemAttributes = null;
+    PreparedStatement stDelHashBlock = null;
+    PreparedStatement stDelXANode = null;
+    //PreparedStatement stSelChildren = null;
+    PreparedStatement stDelNode = null;
+        
     long poolIdx;
     public boolean c_Persist2Cache = false;
 
@@ -147,6 +161,8 @@ public class JDBCEntityManager implements GenericEntityManager
 
     private Connection jdbcConnection;
     JDBCConnectionFactory connFactory;
+    
+    PsMaker psMaker;
 
     final public Connection getConnection() throws SQLException
     {
@@ -166,9 +182,11 @@ public class JDBCEntityManager implements GenericEntityManager
         return jdbcConnection;
     }
 
-    public void setPoolIdx( long poolIdx )
+    public void setPoolIdx( long poolIdx ) throws SQLException
     {
         this.poolIdx = poolIdx;
+        initPs();
+        
     }
 
     public Connection reopenConnection() throws SQLException
@@ -177,13 +195,27 @@ public class JDBCEntityManager implements GenericEntityManager
         {
             if (tx != null)
                 openCommits--;
-            jdbcConnection.commit();
-            jdbcConnection.close();
+            try {
+                jdbcConnection.commit();
+                jdbcConnection.close();
+            }
+            catch (SQLException sQLException) {
+                 LogManager.msg_db(LogManager.LVL_ERR, "Error closing connection " + this.toString(), sQLException );
+            }
         }
         LogManager.msg_db(LogManager.LVL_INFO, "ReOpening connection " + this.toString() );
         
         jdbcConnection = connFactory.createConnection();
         jdbcConnection.setAutoCommit(false);
+        
+        insertStatementMap.clear();
+        deleteStatementMap.clear();
+        updateStatementMap.clear();
+        selectStatementMap.clear();
+        linkStatementMap.clear();
+        newIndexStatementMap.clear();
+        linkMap.clear();
+        fieldMap.clear();
 
         return jdbcConnection;
     }
@@ -196,15 +228,35 @@ public class JDBCEntityManager implements GenericEntityManager
         this.jdbcConnection = getConnection();
         this.poolIdx = idx;
         
-        insertStatementMap = new HashMap<String, PreparedStatement>();
-        deleteStatementMap = new HashMap<String, PreparedStatement>();
-        updateStatementMap = new HashMap<String, PreparedStatement>();
-        selectStatementMap = new HashMap<String, PreparedStatement>();
-        linkStatementMap = new HashMap<String, PreparedStatement>();
-        newIndexStatementMap = new HashMap<String, PreparedStatement>();
-        linkMap = new HashMap<String, LinkEntry>();
-        fieldMap = new HashMap<String, FieldEntry>();               
-
+        insertStatementMap = new HashMap<>();
+        deleteStatementMap = new HashMap<>();
+        updateStatementMap = new HashMap<>();
+        selectStatementMap = new HashMap<>();
+        linkStatementMap = new HashMap<>();
+        newIndexStatementMap = new HashMap<>();
+        linkMap = new HashMap<>();
+        fieldMap = new HashMap<>();  
+        
+        psMaker = new PsMaker();
+               
+    }
+    public void initPs() throws SQLException
+    {
+    
+        if (stDelPoolNodeFileLink == null)
+            stDelPoolNodeFileLink = getConnection().prepareStatement("delete from PoolNodeFileLink where fileNode_idx=?");
+        if (stDelFileSystemElemAttributes == null)
+            stDelFileSystemElemAttributes = getConnection().prepareStatement("delete from FileSystemElemAttributes where file_idx=?");
+        if (stDelHashBlock == null)
+            stDelHashBlock = getConnection().prepareStatement("delete from HashBlock where fileNode_idx=?");
+        if (stDelXANode == null)
+            stDelXANode = getConnection().prepareStatement("delete from XANode where fileNode_idx=?");
+//        if (stSelChildren == null)
+//            stSelChildren = getConnection().prepareStatement("select idx from FileSystemElemNode where parent_idx=?");
+        if (stDelNode == null)
+            stDelNode = getConnection().prepareStatement("delete from FileSystemElemNode where idx=?");   
+        
+        psMaker.createPoolPs(getConnection());
     }
 //    public static void initializeJDBCPool(EntityManagerFactory emf) throws IOException
 //    {
@@ -264,18 +316,23 @@ public class JDBCEntityManager implements GenericEntityManager
                     cl = Class.forName("org.apache.derby.jdbc.ClientConnectionPoolDataSource");
                     cds = (ConnectionPoolDataSource) cl.newInstance();
                     org.apache.derby.jdbc.ClientDataSource derby_cds = (org.apache.derby.jdbc.ClientDataSource)cds;
-                    String networkUrl[] = url.split( "//");
-                    if (networkUrl.length != 3)
+                    // jdbc:derby://server:port/<AbsPath>;opts
+                    
+                    String serverPortAbsPath = url.substring(url.indexOf("://") + 3);
+                    String absPathWithOpts = serverPortAbsPath.substring(serverPortAbsPath.indexOf('/') + 1);     
+                    String serverPort = serverPortAbsPath.substring(0, serverPortAbsPath.indexOf('/'));
+                                   
+                    String network[] = serverPort.split(":");
+                    
+                    if (network.length != 2)
                         throw new IOException( "Invalid Network Url for Database " + url);
                     
-                    String dbNameWithOpts = "/" + networkUrl[2];
-                    
-                    String[] urlParts = dbNameWithOpts.split(";");
+                    String[] urlParts = absPathWithOpts.split(";");
                     String db = urlParts[0];
                     derby_cds.setDatabaseName(db);
                     derby_cds.setUser(user.toString());
                     derby_cds.setPassword(pwd.toString());
-                    String network[] = networkUrl[1].split( ":");
+                   
                                         
                     derby_cds.setPortNumber( Integer.parseInt( network[1]) );
                     derby_cds.setServerName( network[0]);
@@ -299,7 +356,7 @@ public class JDBCEntityManager implements GenericEntityManager
         }
         catch (Exception exc)
         {
-            throw new IOException("cannot load jdbc connection", exc);
+            throw new IOException("cannot load jdbc connection: " + jdbcUrl, exc);
         }
     }
 
@@ -322,10 +379,12 @@ public class JDBCEntityManager implements GenericEntityManager
             String selectQryString = build_select_string(o, /*addTable*/null, add_qry, orderBy);
             String[] keys = new String[1];
             keys[0] = "idx";
-
-                       
-            PreparedStatement ps = getConnection().prepareStatement(selectQryString, keys);
-            return ps;
+           
+           
+            return psMaker.getPs(getConnection(), selectQryString,keys);  
+            
+//            PreparedStatement ps = getConnection().prepareStatement(selectQryString, keys);
+//            return ps;
         }
         catch (Exception exception)
         {
@@ -786,7 +845,7 @@ public class JDBCEntityManager implements GenericEntityManager
             }
             catch (Exception exc)
             {
-                LogManager.err_db("CreateObject Todo resolve Object: " + fe.clazz.getName(), exc);
+                LogManager.err_db("CreateObject Todo resolve Object: " + fe.clazz.getName(), exc);exc.printStackTrace();
             }
         }
         // FILL LAZY LIOSTS FOR ALL NEW OBJECTS
@@ -1432,29 +1491,9 @@ public class JDBCEntityManager implements GenericEntityManager
         }
     }
 
-    PreparedStatement stDelPoolNodeFileLink = null;
-    PreparedStatement stDelFileSystemElemAttributes = null;
-    PreparedStatement stDelHashBlock = null;
-    PreparedStatement stDelXANode = null;
-    //PreparedStatement stSelChildren = null;
-    PreparedStatement stDelNode = null;
-    
+
     void em_remove_fse( long nodeIdx) throws SQLException
     {
-        // CAUTION: THIS MUST MATCH TO THE CASCAE ENTRIES IN FileSystemElemNode
-        if (stDelPoolNodeFileLink == null)
-            stDelPoolNodeFileLink = getConnection().prepareStatement("delete from PoolNodeFileLink where fileNode_idx=?");
-        if (stDelFileSystemElemAttributes == null)
-            stDelFileSystemElemAttributes = getConnection().prepareStatement("delete from FileSystemElemAttributes where file_idx=?");
-        if (stDelHashBlock == null)
-            stDelHashBlock = getConnection().prepareStatement("delete from HashBlock where fileNode_idx=?");
-        if (stDelXANode == null)
-            stDelXANode = getConnection().prepareStatement("delete from XANode where fileNode_idx=?");
-//        if (stSelChildren == null)
-//            stSelChildren = getConnection().prepareStatement("select idx from FileSystemElemNode where parent_idx=?");
-        if (stDelNode == null)
-            stDelNode = getConnection().prepareStatement("delete from FileSystemElemNode where idx=?");
-
         stDelPoolNodeFileLink.setLong(1, nodeIdx);
         stDelPoolNodeFileLink.execute();
 
@@ -1466,23 +1505,7 @@ public class JDBCEntityManager implements GenericEntityManager
        
         stDelXANode.setLong(1, nodeIdx);
         stDelXANode.execute();
-        
 
-//        ArrayList<Long> kids = new ArrayList<Long>();
-//        stSelChildren.setLong(1, nodeIdx);
-//        ResultSet rs = stSelChildren.executeQuery();
-//        while( rs.next() )
-//        {
-//            kids.add( rs.getLong(1));
-//        }
-//
-//
-//
-//        for (int i = 0; i < kids.size(); i++)
-//        {
-//            Long k = kids.get(i);
-//            em_remove_fse( k );
-//        }
 
         stDelNode.setLong(1, nodeIdx);
         stDelNode.execute();
@@ -1918,7 +1941,10 @@ public class JDBCEntityManager implements GenericEntityManager
         sb.append("delete from ");
         sb.append(table);
         sb.append(" where idx=?");
-        ps = getConnection().prepareStatement(sb.toString());
+               
+
+        ps = psMaker.getPs(getConnection(), sb.toString()); 
+        //ps = getConnection().prepareStatement(sb.toString());
         deleteStatementMap.put(table, ps);
         return ps;
     }
@@ -2136,7 +2162,9 @@ public class JDBCEntityManager implements GenericEntityManager
             sb.append("?");
         }
         sb.append(")");
-        ps = getConnection().prepareStatement(sb.toString());
+        
+        ps = psMaker.getPs(getConnection(), sb.toString()); 
+        //ps = getConnection().prepareStatement(sb.toString());
         insertStatementMap.put(table, ps);
         return ps;
     }
@@ -2259,7 +2287,9 @@ public class JDBCEntityManager implements GenericEntityManager
         }
         sb_fields.append(" where idx=?");
         sb.append(sb_fields);
-        ps = getConnection().prepareStatement(sb.toString(), keys);
+        
+        ps = psMaker.getPs(getConnection(), sb.toString(), keys); 
+        //ps = getConnection().prepareStatement(sb.toString(), keys);
         updateStatementMap.put(table, ps);
         return ps;
     }
@@ -2382,7 +2412,9 @@ public class JDBCEntityManager implements GenericEntityManager
             return ps;
         }
         String s = "select max(idx) from " + table;
-        ps = getConnection().prepareStatement(s);
+        
+        ps = psMaker.getPs(getConnection(), s); 
+        //ps = getConnection().prepareStatement(s);
         newIndexStatementMap.put(table, ps);
         return ps;
     }

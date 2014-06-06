@@ -139,8 +139,7 @@ public class JDBCLazyList<T> extends LazyList
         }
         catch (Exception sQLException)
         {
-            LogManager.err_db("Error resolving LayzyList for " + statementName + ownerIdx , sQLException);
-            sQLException.printStackTrace();
+            LogManager.err_db("Error resolving LayzyList for " + statementName + ownerIdx , sQLException);            
         }
         finally
         {

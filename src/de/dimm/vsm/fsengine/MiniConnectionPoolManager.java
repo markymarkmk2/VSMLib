@@ -151,6 +151,7 @@ public class MiniConnectionPoolManager implements JDBCConnectionFactory
     public Connection createConnection() throws SQLException
     {
         Connection conn = getConnection2(timeoutMs);
+        conn.setAutoCommit(false);
         logSize( "createConnection");
         return conn; 
     }
@@ -410,6 +411,7 @@ public class MiniConnectionPoolManager implements JDBCConnectionFactory
     private class PoolConnectionEventListener implements ConnectionEventListener
     {
 
+        @Override
         public void connectionClosed( ConnectionEvent event )
         {
             PooledConnection pconn = (PooledConnection) event.getSource();
@@ -417,6 +419,7 @@ public class MiniConnectionPoolManager implements JDBCConnectionFactory
             logSize( "connectionClosed");
         }
 
+        @Override
         public void connectionErrorOccurred( ConnectionEvent event )
         {
             PooledConnection pconn = (PooledConnection) event.getSource();
