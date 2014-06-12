@@ -181,6 +181,7 @@ public class MiniConnectionPoolManager implements JDBCConnectionFactory
         try
         {
             Connection conn = getConnection3();
+            conn.setAutoCommit( false);
             ok = true;
             return conn;
         }

@@ -78,6 +78,7 @@ public class JDBCLazyList<T> extends LazyList
 
             if (ps == null)
             {
+                LogManager.err_db("Creating missing LayzyList PS for " + statementName + ownerIdx );
                ps = handler._getSelectStatement(cl, "T1." + fieldname + "=?", "order by T1.idx asc");
             }
             // SET ID

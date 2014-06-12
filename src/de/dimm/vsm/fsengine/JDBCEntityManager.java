@@ -30,10 +30,8 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import javax.persistence.CascadeType;
@@ -54,7 +52,6 @@ import net.sf.ehcache.Element;
 import net.sf.ehcache.Statistics;
 import net.sf.ehcache.event.CacheEventListener;
 import net.sf.ehcache.event.CacheEventListenerAdapter;
-import org.catacombae.jfuse.util.Log;
 
 
 
@@ -381,10 +378,11 @@ public class JDBCEntityManager implements GenericEntityManager
             keys[0] = "idx";
            
            
-            return psMaker.getPs(getConnection(), selectQryString,keys);  
+            //return psMaker.getPs(getConnection(), selectQryString,keys);  
             
-//            PreparedStatement ps = getConnection().prepareStatement(selectQryString, keys);
-//            return ps;
+            LogManager.msg_db( LogManager.LVL_WARN, "Creating PS select statement " + o.getSimpleName() + " " + add_qry + " " + orderBy);
+            PreparedStatement ps = getConnection().prepareStatement(selectQryString, keys);
+            return ps;
         }
         catch (Exception exception)
         {
