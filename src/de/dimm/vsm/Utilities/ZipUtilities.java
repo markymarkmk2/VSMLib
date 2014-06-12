@@ -747,8 +747,8 @@ public class ZipUtilities
         {
             get_clen("askdjhaskjhdkajsawieoiu");
             get_clen("askdjhaskjhdkajsawieoiuaskdjhaskjhdkajsawieoiuaskdjhaskjhdkajsawieoiu");
-            get_clen("Thus is a onnonrepititiveText with lots of hdtus jusd78qwnx09q34nxqn9zwrgfg98473652920nxpojfhf56aölc0998rjq2jqwd9pfuqnmx xi4081308x1r");
-            get_clen(ZipUtilities.toBase64("Thus is a onnonrepititiveText with lots of hdtus jusd78qwnx09q34nxqn9zwrgfg98473652920nxpojfhf56aölc0998rjq2jqwd9pfuqnmx xi4081308x1r"));
+            get_clen("Thus is a onnonrepititiveText with lots of hdtus jusd78qwnx09q34nxqn9zwrgfg98473652920nxpojfhf56aÃ¼lc0998rjq2jqwd9pfuqnmx xi4081308x1r");
+            get_clen(ZipUtilities.toBase64("Thus is a onnonrepititiveText with lots of hdtus jusd78qwnx09q34nxqn9zwrgfg98473652920nxpojfhf56aÃ¼lc0998rjq2jqwd9pfuqnmx xi4081308x1r"));
 
         }
         catch (Exception e)

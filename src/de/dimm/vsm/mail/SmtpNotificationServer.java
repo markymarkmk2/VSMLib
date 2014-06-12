@@ -180,7 +180,7 @@ public class SmtpNotificationServer extends NotificationServer
             }
             catch (AddressException addressException)
             {
-                LogManager.msg_system(LogManager.LVL_WARN, "Ignoriere ungültige Mailadresse" + " " + mail);
+                LogManager.msg_system(LogManager.LVL_WARN, "Ignoriere ungÃ¼ltige Mailadresse" + " " + mail);
             }
 
             if (in == null)

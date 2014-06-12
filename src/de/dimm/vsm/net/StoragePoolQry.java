@@ -93,7 +93,7 @@ public class StoragePoolQry implements Serializable
         this.snapShotTs = snapShotTs;
         this.showDeleted = showDeleted;   
         
-        // UserRechte gehen über Vorgaben von außen
+        // UserRechte gehen Ã¼ber Vorgaben von auÃŸen
         if (!user.isAdmin() && !user.hasRoleOption(RoleOption.RL_READ_WRITE))
             this.readOnly = true;        
     }
@@ -132,7 +132,7 @@ public class StoragePoolQry implements Serializable
         if (readOnly)
             return true;
 
-        // Hmm, Wenn kein Node angegeben wurde, übernehme ich die Vorgabe vom Pool (User beim Erzeugen)
+        // Hmm, Wenn kein Node angegeben wurde, Ã¼bernehme ich die Vorgabe vom Pool (User beim Erzeugen)
         if (node == null)
             return true;
         

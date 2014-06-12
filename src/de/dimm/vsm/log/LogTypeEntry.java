@@ -6,8 +6,6 @@
 package de.dimm.vsm.log;
 
 import de.dimm.vsm.Utilities.BackgroundWorker;
-import de.dimm.vsm.Utilities.BackgroundWorker;
-import de.dimm.vsm.Utilities.ZipUtilities;
 import de.dimm.vsm.Utilities.ZipUtilities;
 import java.io.File;
 import java.io.FileWriter;

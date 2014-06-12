@@ -394,7 +394,7 @@ public class User implements Serializable
     }
 
     /**
-     * Das ist der User, mit dem intern gemountet wird, also muss der auch schreiben können
+     * Das ist der User, mit dem intern gemountet wird, also muss der auch schreiben kÃ¶nnen
      * @return 
      */
     public static User createSystemInternal()

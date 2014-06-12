@@ -155,7 +155,7 @@ public class MMapi
         String ret = sb.toString();
         int idx = ret.indexOf(':');
         if (ret.length() < 4 || idx < 0 || idx +1 >  ret.length() - 4 )
-            throw new IOException("Ungültige Antwort von MM: " + sb.toString() );
+            throw new IOException("UngÃ¼ltige Antwort von MM: " + sb.toString() );
 
 
         int r = Integer.parseInt(ret.substring(0, idx));

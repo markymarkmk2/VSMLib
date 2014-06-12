@@ -179,10 +179,11 @@ public class JDBCEntityManager implements GenericEntityManager
         return jdbcConnection;
     }
 
-    public void setPoolIdx( long poolIdx ) throws SQLException
+    public final void setPoolIdx( long poolIdx ) throws SQLException
     {
         this.poolIdx = poolIdx;
-        initPs();
+        if (poolIdx > 0)
+            initPs();
         
     }
 
@@ -223,7 +224,7 @@ public class JDBCEntityManager implements GenericEntityManager
         this.connFactory = cf;
 //        LogManager.msg_db(LogManager.LVL_INFO, "Creating EntityManager " + this.toString() );
         this.jdbcConnection = getConnection();
-        this.poolIdx = idx;
+        
         
         insertStatementMap = new HashMap<>();
         deleteStatementMap = new HashMap<>();
@@ -235,9 +236,11 @@ public class JDBCEntityManager implements GenericEntityManager
         fieldMap = new HashMap<>();  
         
         psMaker = new PsMaker();
+        
+        setPoolIdx(idx);
                
     }
-    public void initPs() throws SQLException
+    private void initPs() throws SQLException
     {
     
         if (stDelPoolNodeFileLink == null)
@@ -364,24 +367,18 @@ public class JDBCEntityManager implements GenericEntityManager
 //    }
 
 
-    <T> PreparedStatement _getSelectStatement( Class<T> o, String add_qry ) throws SQLException
+    <T> PreparedStatement _getSelectStatement( Class<T> o, String add_qry, boolean doComment, String comment ) throws SQLException
     {
-        return _getSelectStatement(o, add_qry, null);
+        return _getSelectStatement(o, add_qry, null, doComment, comment);
     }
 
-    <T> PreparedStatement _getSelectStatement( Class<T> o, String add_qry, String orderBy ) throws SQLException
+    <T> PreparedStatement _getSelectStatement( Class<T> o, String add_qry, String orderBy, boolean doComment, String comment ) throws SQLException
     {
         try
         {
             String selectQryString = build_select_string(o, /*addTable*/null, add_qry, orderBy);
-            String[] keys = new String[1];
-            keys[0] = "idx";
-           
-           
-            //return psMaker.getPs(getConnection(), selectQryString,keys);  
             
-            LogManager.msg_db( LogManager.LVL_WARN, "Creating PS select statement " + o.getSimpleName() + " " + add_qry + " " + orderBy);
-            PreparedStatement ps = getConnection().prepareStatement(selectQryString, keys);
+            PreparedStatement ps = psMaker.getPs(getConnection(), selectQryString, comment);
             return ps;
         }
         catch (Exception exception)
@@ -878,7 +875,7 @@ public class JDBCEntityManager implements GenericEntityManager
     }
    
     @Override
-    public <T> List<T> createQuery( String string, Class<T> aClass, int maxResults, boolean distinct, int maxSeconds ) throws SQLException
+    public synchronized <T> List<T> createQuery( String string, Class<T> aClass, int maxResults, boolean distinct, int maxSeconds ) throws SQLException
     {
         // FIRST DETECT TABLE ENTRY
         int table_idx = string.toLowerCase().indexOf(aClass.getSimpleName().toLowerCase());
@@ -1032,7 +1029,7 @@ public class JDBCEntityManager implements GenericEntityManager
         {
             return ps;
         }
-        ps = _getSelectStatement(cl, "T1." + linkField + "=?", "order by T1.idx asc");
+        ps = _getSelectStatement(cl, "T1." + linkField + "=?", "order by T1.idx asc", true, key);
         if (ps != null)
             linkStatementMap.put(key, ps);
         
@@ -1216,7 +1213,7 @@ public class JDBCEntityManager implements GenericEntityManager
             
             removeOpenSet(t.getSimpleName(), pscount);
             Element el = new Element(key, ret_val);
-            // Im Cache ist eine singuläre instanz, zugruiff muss threadsafe sein
+            // Im Cache ist eine singulÃ¤re instanz, zugruiff muss threadsafe sein
             cache.put(el);
 
             return ret_val;
@@ -1597,7 +1594,7 @@ public class JDBCEntityManager implements GenericEntityManager
                             {
                                 LazyList listField = (LazyList)fo;
 
-                                // Prüfung auf non ArrayLazyList ist falsch, wird entfernt
+                                // PrÃ¼fung auf non ArrayLazyList ist falsch, wird entfernt
                                 // Wenn jemand Cascade remove setzt, dann muss er wissen, was er tut
 //                                if (!(listField instanceof ArrayLazyList))
 //                                {
@@ -2210,7 +2207,7 @@ public class JDBCEntityManager implements GenericEntityManager
         {
             return ps;
         }
-        ps = _getSelectStatement(o, add_qry);
+        ps = _getSelectStatement(o, add_qry, true, key);
         selectStatementMap.put(key, ps);
         return ps;
     }
@@ -2249,7 +2246,7 @@ public class JDBCEntityManager implements GenericEntityManager
         {
             return ps;
         }
-        String[] keys = new String[1];
+       
         StringBuilder sb = new StringBuilder();
         sb.append("update ");
         sb.append(table);
@@ -2267,7 +2264,7 @@ public class JDBCEntityManager implements GenericEntityManager
             }
             if (existsAnnotation(field, Id.class))
             {
-                keys[0] = field.getName();
+               
                 continue;
             }
             if (existsAnnotation(field, OneToMany.class))
@@ -2286,7 +2283,7 @@ public class JDBCEntityManager implements GenericEntityManager
         sb_fields.append(" where idx=?");
         sb.append(sb_fields);
         
-        ps = psMaker.getPs(getConnection(), sb.toString(), keys); 
+        ps = psMaker.getPs(getConnection(), sb.toString()); 
         //ps = getConnection().prepareStatement(sb.toString(), keys);
         updateStatementMap.put(table, ps);
         return ps;

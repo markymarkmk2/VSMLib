@@ -17,7 +17,7 @@ import java.util.List;
  *
  * @author Administrator
  * 
- * !!!!! WICHTIG !!!!!! Hesian unterstützt keine Polymorphen methoden, alles muss unterschiedliche Methodennamen haben !!!!!!!!!!!!!!
+ * !!!!! WICHTIG !!!!!! Hesian unterstÃ¼tzt keine Polymorphen methoden, alles muss unterschiedliche Methodennamen haben !!!!!!!!!!!!!!
  */
 public interface StoragePoolHandlerInterface {
 
