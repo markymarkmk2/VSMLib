@@ -97,7 +97,7 @@ public class JDBCLazyList<T> extends LazyList
                 rs = ps.executeQuery();
             }
             // READ LIST ENTRIES
-            while (!rs.isClosed() && rs.next())
+            while (rs.next())
             {
                 long l2 = rs.getLong("idx");
                 String key = handler.makeKeyFromStr( l2, cl.getSimpleName() );

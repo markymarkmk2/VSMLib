@@ -25,6 +25,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
+import java.sql.SQLNonTransientConnectionException;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Timestamp;
@@ -34,6 +35,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.persistence.CascadeType;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.FetchType;
@@ -160,6 +162,8 @@ public class JDBCEntityManager implements GenericEntityManager
     JDBCConnectionFactory connFactory;
     
     PsMaker psMaker;
+    
+    static ConcurrentHashMap<Class, String> simpleNameHashMap = new ConcurrentHashMap<>();
 
     final public Connection getConnection() throws SQLException
     {
@@ -169,10 +173,6 @@ public class JDBCEntityManager implements GenericEntityManager
             {
                 LogManager.msg_db(LogManager.LVL_WARN, "Opening already closed connection " + this.toString() );
             }
-//            else
-//            {
-//                LogManager.msg_db(LogManager.LVL_INFO, "Opening connection " + this.toString() );
-//            }
             jdbcConnection = connFactory.createConnection();
             jdbcConnection.setAutoCommit(false);
         }
@@ -187,8 +187,15 @@ public class JDBCEntityManager implements GenericEntityManager
         
     }
 
+    public JDBCConnectionFactory getConnFactory() {
+        return connFactory;
+    }
+    
+    
+
     public Connection reopenConnection() throws SQLException
     {
+        // Try to recover on closed Connection
         if (jdbcConnection != null)
         {
             if (tx != null)
@@ -197,7 +204,7 @@ public class JDBCEntityManager implements GenericEntityManager
                 jdbcConnection.commit();
                 jdbcConnection.close();
             }
-            catch (SQLException sQLException) {
+            catch (Exception sQLException) {
                  LogManager.msg_db(LogManager.LVL_ERR, "Error closing connection " + this.toString(), sQLException );
             }
         }
@@ -215,6 +222,9 @@ public class JDBCEntityManager implements GenericEntityManager
         linkMap.clear();
         fieldMap.clear();
 
+        if (poolIdx > 0)
+            initPs();
+        
         return jdbcConnection;
     }
     
@@ -378,12 +388,22 @@ public class JDBCEntityManager implements GenericEntityManager
         {
             String selectQryString = build_select_string(o, /*addTable*/null, add_qry, orderBy);
             
-            PreparedStatement ps = psMaker.getPs(getConnection(), selectQryString, comment);
+            PreparedStatement ps;
+            try
+            {
+                ps = psMaker.getPs(getConnection(), selectQryString, comment);
+            }
+            catch (SQLNonTransientConnectionException ex) {
+                LogManager.msg_db( LogManager.LVL_WARN, "Retry creating select statement " + getSimpleName(o) + " " + add_qry + " " + orderBy, ex);
+                reopenConnection();
+                ps = psMaker.getPs(getConnection(), selectQryString, comment);
+            }
+            
             return ps;
         }
         catch (Exception exception)
         {
-            LogManager.err_db("Error creating select statement " + o.getSimpleName() + " " + add_qry + " " + orderBy, exception);
+            LogManager.err_db("Error creating select statement " + getSimpleName(o) + " " + add_qry + " " + orderBy, exception);
         }
         return null;
     }
@@ -433,7 +453,7 @@ public class JDBCEntityManager implements GenericEntityManager
     {
         try
         {
-            String table = o.getSimpleName().toUpperCase();
+            String table = getSimpleName(o).toUpperCase();
             String[] keys = new String[1];
             keys[0] = "idx";
             StringBuilder sb = new StringBuilder();
@@ -626,11 +646,11 @@ public class JDBCEntityManager implements GenericEntityManager
 
     public String makeKeyFromObj( long idx , Object o )
     {
-        return Long.toString(idx) + o.getClass().getSimpleName() + poolIdx;
+        return Long.toString(idx) + getSimpleName(o.getClass()) + poolIdx;
     }
     public String makeKeyFromObj( Long idx, Object o  )
     {
-        return idx.toString() + o.getClass().getSimpleName() + poolIdx;
+        return idx.toString() + getSimpleName(o.getClass()) + poolIdx;
     }
     public String makeKeyFromStr( Long idx, String className  )
     {
@@ -647,10 +667,11 @@ public class JDBCEntityManager implements GenericEntityManager
     
     public <T> T createObject( ResultSet rs, Class<T> t ) throws SQLException, InstantiationException, IllegalAccessException, NoSuchFieldException, NoSuchMethodException, IllegalArgumentException, InvocationTargetException
     {
+        XStream xs = new XStream();
         T ret_val = null;
         HashMap<String, Object> localObjectMap = new HashMap<String, Object>();
         ArrayList<Object> newObjects = new ArrayList<Object>();
-        String tablename = t.getSimpleName();
+        String tablename = getSimpleName(t);
         int cols = rs.getMetaData().getColumnCount();
         Object objectToFill = null;
         Object lastObjectToFill = null;
@@ -688,7 +709,7 @@ public class JDBCEntityManager implements GenericEntityManager
                     //                        linkSetter.invoke(lastObjectToFill, objectToFill);
                 }
             }
-            final FieldEntry fe = getClassforIgnCaseField(objectToFill.getClass().getSimpleName(), name);
+            final FieldEntry fe = getClassforIgnCaseField(getSimpleName(objectToFill.getClass()), name);
             //String methodName = "set" + Character.toUpperCase(name.charAt(0)) + fe.name.substring(1);
             try
             {
@@ -735,21 +756,20 @@ public class JDBCEntityManager implements GenericEntityManager
                         String s = copy(rs.getString(i));
                         setter.set(objectToFill, s);
                     }
-                    else if(fe.clazz.getSimpleName().equals("RemoteFSElem") )
+                    else if(getSimpleName(fe.clazz).equals("RemoteFSElem") )
                     {
                         Blob blob = (Blob)rs.getObject(i);
                         if (blob != null)
                         {
                             InputStream is = blob.getBinaryStream();
                             try
-                            {
-                                XStream xs = new XStream();
+                            {                                
                                 Object so = xs.fromXML(is);
                                 setter.set(objectToFill, so);
                             }
                             catch (Exception exception)
                             {
-                                LogManager.err_db("Cannot deserialize Object " + fe.clazz.getSimpleName() + ": " + exception.getMessage());
+                                LogManager.err_db("Cannot deserialize Object " + getSimpleName(fe.clazz), exception);
                                 setter.set(objectToFill, null);
                             }
                         }
@@ -781,7 +801,7 @@ public class JDBCEntityManager implements GenericEntityManager
                                 if( c_CreateSubObject2Cache)
                                 {
                                     ConcurrentCache c = getCache(OBJECT_CACHE);
-                                    String key = makeKeyFromStr( idx, fe.clazz.getSimpleName() );
+                                    String key = makeKeyFromStr( idx, getSimpleName(fe.clazz) );
                                     elem = c.get(key);
                                     if (elem != null)
                                     {
@@ -796,7 +816,7 @@ public class JDBCEntityManager implements GenericEntityManager
                                     find_stack_count++;
                                     if (find_stack_count > 30)
                                     {
-                                        System.out.println("Find stack: " + find_stack_count + " " + fe.clazz.getSimpleName() + idx);
+                                        System.out.println("Find stack: " + find_stack_count + " " + getSimpleName(fe.clazz) + idx);
                                     }
                                     if (find_stack_count < MAX_PS)
                                     {
@@ -810,7 +830,7 @@ public class JDBCEntityManager implements GenericEntityManager
                             }
                         }
                     }
-                    else if (fe.clazz.getSimpleName().equals("Date"))
+                    else if (getSimpleName(fe.clazz).equals("Date"))
                     {
                         setter.set(objectToFill, rs.getTimestamp(i));
                     }
@@ -840,7 +860,8 @@ public class JDBCEntityManager implements GenericEntityManager
             }
             catch (Exception exc)
             {
-                LogManager.err_db("CreateObject Todo resolve Object: " + fe.clazz.getName(), exc);exc.printStackTrace();
+                LogManager.err_db("CreateObject Todo resolve Object: " + getSimpleName(objectToFill.getClass()) + ":" + name, exc);
+                throw new SQLException("CreateObject Todo resolve Object: " + getSimpleName(objectToFill.getClass()) + ":" + name, exc);
             }
         }
         // FILL LAZY LIOSTS FOR ALL NEW OBJECTS
@@ -878,7 +899,7 @@ public class JDBCEntityManager implements GenericEntityManager
     public synchronized <T> List<T> createQuery( String string, Class<T> aClass, int maxResults, boolean distinct, int maxSeconds ) throws SQLException
     {
         // FIRST DETECT TABLE ENTRY
-        int table_idx = string.toLowerCase().indexOf(aClass.getSimpleName().toLowerCase());
+        int table_idx = string.toLowerCase().indexOf(getSimpleName(aClass).toLowerCase());
 
         // DETECT EXISTING JOIN TABLE ENTRY
         int altTableIdx = string.indexOf(",", table_idx);
@@ -1022,7 +1043,7 @@ public class JDBCEntityManager implements GenericEntityManager
     final <T> PreparedStatement createSelectChildrenPS( Class<T> cl, String linkField ) throws SQLException
     {
         //GNENERATE KEY
-        String key = cl.getSimpleName() + linkField + linkSelectPSMap.size();
+        String key = getSimpleName(cl) + linkField + linkSelectPSMap.size();
         
         PreparedStatement ps = linkStatementMap.get(key);
         if (ps != null)
@@ -1071,7 +1092,7 @@ public class JDBCEntityManager implements GenericEntityManager
                     if (c_CreateSingleQuery2Cache)
                     {
                         ConcurrentCache c = getCache(OBJECT_CACHE);
-                        String key = makeKeyFromStr( getIdx(t), aClass.getSimpleName());
+                        String key = makeKeyFromStr( getIdx(t), getSimpleName(aClass));
                         if (t == null)
                             throw new SQLException("Null??");
                         c.putIfAbsent(new Element(key, t));
@@ -1103,7 +1124,7 @@ public class JDBCEntityManager implements GenericEntityManager
         //System.out.println("Detaching " + o.getClass().getSimpleName() + ":" + getIdx(o));
         // REMOVE FROM CACHE
         long idx = getIdx(o);
-        String key = makeKeyFromStr( idx, o.getClass().getSimpleName() );
+        String key = makeKeyFromStr( idx, getSimpleName(o.getClass()) );
 
         ConcurrentCache c = getCache(OBJECT_CACHE);
         c.remove(key);
@@ -1116,7 +1137,7 @@ public class JDBCEntityManager implements GenericEntityManager
             {
                 continue;
             }
-            if (field.getType().getSimpleName().equals("List"))
+            if (getSimpleName(field.getType()).equals("List"))
             {
                 try
                 {
@@ -1178,9 +1199,10 @@ public class JDBCEntityManager implements GenericEntityManager
     {
         ResultSet rs = null;
         T ret_val = null;
+        int pscount = -1;
         try
         {
-            String key = makeKeyFromStr( idx, t.getSimpleName() );
+            String key = makeKeyFromStr( idx, getSimpleName(t) );
 
             ConcurrentCache cache = getCache(OBJECT_CACHE);
             Element cachedObject = cache.get(key);
@@ -1193,25 +1215,23 @@ public class JDBCEntityManager implements GenericEntityManager
             }
 
             incMissCount();
-            int pscount = addOpenSet(t.getSimpleName());
-                PreparedStatement ps = getSelectStatement(t, null);
-                ps.setLong(1, idx);
+            pscount = addOpenSet(getSimpleName(t));
+            PreparedStatement ps = getSelectStatement(t, null);
+            ps.setLong(1, idx);
             rs = ps.executeQuery();
             if (!rs.next())
             {
                 if (!suppressNotFound)
                     System.out.println("Cannot resolve DB Object " + key);
                 
-                rs.close();
-                removeOpenSet(t.getSimpleName(), pscount);
+                rs.close();                
                 return null;
                 //throw new SQLException("Find failed for " + key );
             }
 
             //System.out.println("Finding " + t.getSimpleName() + ":" + idx);
             ret_val = createObject(rs, t);
-            
-            removeOpenSet(t.getSimpleName(), pscount);
+                        
             Element el = new Element(key, ret_val);
             // Im Cache ist eine singuläre instanz, zugruiff muss threadsafe sein
             cache.put(el);
@@ -1220,10 +1240,13 @@ public class JDBCEntityManager implements GenericEntityManager
         }
         catch (Exception e)
         {   
-            LogManager.err_db("Error resolving Object " + t.getSimpleName() + idx, e);
+            LogManager.err_db("Error resolving Object " + getSimpleName(t) + idx, e);
         }
         finally
         {
+            if (pscount != 0)
+                removeOpenSet(getSimpleName(t), pscount);
+            
             if (rs != null)
             {
                 try
@@ -1440,7 +1463,7 @@ public class JDBCEntityManager implements GenericEntityManager
             }
             catch (SQLIntegrityConstraintViolationException integrity)
             {
-                LogManager.err_db("Class:" + o.getClass().getSimpleName() + " " + o.toString());
+                LogManager.err_db("Class:" + getSimpleName(o.getClass()) + " " + o.toString());
                 throw integrity;
             }
         }
@@ -1514,7 +1537,7 @@ public class JDBCEntityManager implements GenericEntityManager
         Annotation ann;
     }
     String getKey( Field field, Class<?> clazz) {
-        String key = field.getDeclaringClass().getSimpleName() + "." +  field.getName() + "." + clazz.getSimpleName();
+        String key = getSimpleName(field.getDeclaringClass()) + "." +  field.getName() + "." + getSimpleName(clazz);
         return key;
     }
             
@@ -1609,7 +1632,7 @@ public class JDBCEntityManager implements GenericEntityManager
                             }
                             else
                             {
-                                throw new SQLException("Invalid List field type " + fo.getClass().getSimpleName());
+                                throw new SQLException("Invalid List field type " + getSimpleName(fo.getClass()));
                             }
 
                         }
@@ -1775,7 +1798,7 @@ public class JDBCEntityManager implements GenericEntityManager
             if (skipField( elem  ))
                 continue;
 
-            String key = o.getClass().getSimpleName() + "." + elem.getName();
+            String key = getSimpleName(o.getClass()) + "." + elem.getName();
 
             if (List.class.isAssignableFrom(elem.getType()))
             {
@@ -1805,7 +1828,7 @@ public class JDBCEntityManager implements GenericEntityManager
                             }
                             else
                             {
-                                System.out.println("Pool0: " + o.getClass().getSimpleName());
+                                System.out.println("Pool0: " + getSimpleName(o.getClass()));
                             }
                         }
                        JDBCLazyList ll = new JDBCLazyList(type, field, ret_val_idx/*, this*/);
@@ -1926,7 +1949,7 @@ public class JDBCEntityManager implements GenericEntityManager
 
     PreparedStatement getDeleteStatement( Object o ) throws SQLException
     {
-        String table = o.getClass().getSimpleName().toUpperCase();
+        String table = getSimpleName(o.getClass()).toUpperCase();
         PreparedStatement ps = deleteStatementMap.get(table);
         if (ps != null)
         {
@@ -1949,7 +1972,7 @@ public class JDBCEntityManager implements GenericEntityManager
         Field[] fields = o.getDeclaredFields();
         StringBuilder sb_fields = new StringBuilder();
         String tablePrefix = "T" + tables.size();
-        registerLink(baseObject.getSimpleName(), o.getSimpleName(), o, linkField);
+        registerLink(getSimpleName(baseObject), getSimpleName(o), o, linkField);
         for (int i = 0; i < fields.length; i++)
         {
             Field field = fields[i];
@@ -1967,14 +1990,14 @@ public class JDBCEntityManager implements GenericEntityManager
             {
                 continue;
             }
-            registerField(o.getSimpleName(), field.getName(), field.getType(), getFieldName(field), field);
+            registerField(getSimpleName(o), field.getName(), field.getType(), getFieldName(field), field);
             if (sb_fields.length() > 0)
             {
                 sb_fields.append(",");
             }                        
             if (field.getName().equals("attributes"))
             {
-                String table = field.getType().getSimpleName().toUpperCase();
+                String table = getSimpleName(field.getType()).toUpperCase();
                 tables.add(table);
                 // CREATE LINK "T0.ATTRIBUTES_IDX=T1.IDX"
                 StringBuilder sb_link = new StringBuilder();
@@ -2107,7 +2130,7 @@ public class JDBCEntityManager implements GenericEntityManager
 
     PreparedStatement getInsertStatement( Object o ) throws SQLException
     {
-        String table = o.getClass().getSimpleName().toUpperCase();
+        String table = getSimpleName(o.getClass()).toUpperCase();
         PreparedStatement ps = insertStatementMap.get(table);
         if (ps != null)
         {
@@ -2198,7 +2221,7 @@ public class JDBCEntityManager implements GenericEntityManager
 
     <T> PreparedStatement getSelectStatement( Class<T> o, String add_qry ) throws SQLException
     {
-        String table = o.getSimpleName().toUpperCase();
+        String table = getSimpleName(o).toUpperCase();
         //GNENERATE KEY
         String key = table + selectPSMap.size();
 
@@ -2240,7 +2263,7 @@ public class JDBCEntityManager implements GenericEntityManager
 
     PreparedStatement getUpdateStatement( Object o ) throws SQLException
     {
-        String table = o.getClass().getSimpleName().toUpperCase();
+        String table = getSimpleName(o.getClass()).toUpperCase();
         PreparedStatement ps = updateStatementMap.get(table);
         if (ps != null)
         {
@@ -2427,7 +2450,7 @@ public class JDBCEntityManager implements GenericEntityManager
         }
 
         // TODO: SPEED THIS UP WITH OWN COUNTERS, SEQENCE DATABASE ETC.
-        String simpleName = newObject.getClass().getSimpleName();
+        String simpleName = getSimpleName(newObject.getClass());
         String key = em.poolIdx + simpleName;
 
         NewIndexEntry newIndex = newIndexCacheMap.get(key);
@@ -2568,5 +2591,16 @@ public class JDBCEntityManager implements GenericEntityManager
         System.out.println("Size: " + ch.getSize() + ": " + st.toString() );
     }
 
+    // Systemwide Classname cache
+    private static String getSimpleName(Class clazz)
+    {
+        String name = simpleNameHashMap.get(clazz);
+        if (name != null)
+            return name;
+        
+        name = clazz.getSimpleName();
+        simpleNameHashMap.put(clazz, name);
+        return name;
+    }
     
 }

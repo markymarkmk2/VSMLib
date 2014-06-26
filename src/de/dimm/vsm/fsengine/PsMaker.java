@@ -4,10 +4,11 @@
  */
 package de.dimm.vsm.fsengine;
 
+import de.dimm.vsm.log.LogManager;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import org.catacombae.jfuse.util.Log;
@@ -103,70 +104,91 @@ public class PsMaker {
         "select T1.idx,T1.disabled,T1.offsetStartMs,T1.dayNumber,T1.overrideSnapshotEnabled,T1.sched_idx from JOB T1 where T1.sched_idx=? order by T1.idx asc;Jobsched_idx1",
         "select T1.idx,T1.ip,T1.port,T1.disabled,T1.compression,T1.onlyNewer,T1.encryption,T1.sched_idx from CLIENTINFO T1 where T1.sched_idx=? order by T1.idx asc;ClientInfosched_idx1",
         "select max(idx) from DedupHashBlock",
-        "insert into DEDUPHASHBLOCK (idx,pool_idx,storageNode_idx,blockLen,hashvalue) values (?,?,?,?,?)",        
+        "insert into DEDUPHASHBLOCK (idx,pool_idx,storageNode_idx,blockLen,hashvalue) values (?,?,?,?,?)", 
+        "select T1.idx,T1.fileNode_idx,T1.ts,T1.dedupBlock_idx,T1.hashvalue,T1.reorganize,T1.blockOffset,T1.blockLen from HASHBLOCK T1 where T1.fileNode_idx=? order by T1.idx asc;HashBlockfileNode_idx1",
+        "delete from POOLNODEFILELINK where idx=?",
+        "delete from FILESYSTEMELEMATTRIBUTES where idx=?",
+        "delete from FILESYSTEMELEMNODE where idx=?",
+        "select T1.idx,T1.fileNode_idx,T1.ts,T1.hashvalue,T1.reorganize,T1.blockOffset,T1.blockLen,T1.dedupBlock_idx,T1.streamInfo from XANODE T1 where T1.fileNode_idx=? order by T1.idx asc;XANodefileNode_idx1",
+        "select T1.idx,T1.name,T1.creation,T1.scheduleStart,T1.disabled,T1.pool_idx,T1.isCycle,T1.cycleLengthMs from SCHEDULE T1 where T1.idx=?;SCHEDULE1",
+        "select T1.idx,T1.startTime,T1.endTime,T1.ok,T1.status,T1.schedule_idx from BACKUPJOBRESULT T1 where T1.idx=?;BACKUPJOBRESULT1",
+        "select T1.idx,T1.ip,T1.port,T1.disabled,T1.compression,T1.onlyNewer,T1.encryption,T1.sched_idx from CLIENTINFO T1 where T1.idx=?;CLIENTINFO1",
+        "select T1.idx,T1.name,T1.creationDateMs,T1.modificationDateMs,T1.accessDateMs,T1.deleted,T1.ts,T1.posixMode,T1.fsize,T1.xasize,T1.uid,T1.gid,T1.uidName,T1.gidName,T1.xattribute,T1.aclinfo,T1.file_idx,T1.flags from FILESYSTEMELEMATTRIBUTES T1 where T1.file_idx=? order by T1.idx asc;FileSystemElemAttributesfile_idx1",
+            
+
         
-        
-        
+                
     };
     static final Map<String,Integer> psCntMap = new HashMap<>();
     static {
         psCntMap.put("JOBSCHED_IDX", Integer.valueOf(3));
         psCntMap.put("CLIENTINFOSCHED_IDX", Integer.valueOf(3));
         psCntMap.put("CLIENTVOLUMECLINFO_IDX", Integer.valueOf(3));
-        psCntMap.put("CLIENTINFO", Integer.valueOf(3));
-        psCntMap.put("SCHEDULE", Integer.valueOf(3));
+        psCntMap.put("HASHBLOCKFILENODE_IDX", Integer.valueOf(3));
         psCntMap.put("FILESYSTEMELEMNODE", Integer.valueOf(50));
     }    
     
     public static final String[] noPoolDbs = {"MessageLog", "ROLE", "accountConnector", "HOTFOLDER", "ROLEOPTION", "MAILGROUP", "SMTPLOGINDATA", "HOTFOLDERERROR"};
     private HashMap<String, PreparedStatement> stMap = new HashMap<>();
     private int MAX_ID_PS_CNT = 10;
+    private boolean skipMsg =false;
 
     public void createPoolPs( Connection conn ) throws SQLException {
-        for (int i = 0; i < PS.length; i++) {
-            String line = PS[i];
-            boolean skip = false;
-            for (int n = 0; n < noPoolDbs.length; n++) {
-                if (line.toUpperCase().contains(" " + noPoolDbs[n].toUpperCase() + " ")
-                        || line.toUpperCase().contains(" " + noPoolDbs[n].toUpperCase() + ",")) {
-                    skip = true;
-                    break;
+        skipMsg = true;
+        try
+        {
+            for (int i = 0; i < PS.length; i++) {
+                String line = PS[i];
+                boolean skip = false;
+                for (int n = 0; n < noPoolDbs.length; n++) {
+                    if (line.toUpperCase().contains(" " + noPoolDbs[n].toUpperCase() + " ")
+                            || line.toUpperCase().contains(" " + noPoolDbs[n].toUpperCase() + ",")) {
+                        skip = true;
+                        break;
+                    }
+                }
+                if (skip) {
+                    continue;
+                }
+
+
+
+
+
+                String[] qryComment = line.split(";");
+                String qry = qryComment[0];
+
+                int idx = qry.indexOf(", [");            
+                if (idx > 0) {
+                    qry = qry.substring(0, idx).trim();                
+                }
+
+                if (qryComment.length == 2) {
+                    String psIdentifier = qryComment[1];
+                    int nridx = psIdentifier.length() - 1;
+                    while (Character.isDigit(psIdentifier.charAt(nridx)))
+                    {
+                        nridx--;
+                    }
+                    psIdentifier = psIdentifier.substring(0, nridx + 1);
+                    int max_id_ps_cnt = getMaxIdPsCnt(psIdentifier) + 1;
+                    for (int n = 1; n < max_id_ps_cnt; n++)
+                    {
+                        getPs(conn, qry,  psIdentifier + n);
+                    }
+
+                }
+                else {
+                    getPs(conn, qry);
                 }
             }
-            if (skip) {
-                continue;
-            }
-
-
-           
-            
-
-            String[] qryComment = line.split(";");
-            String qry = qryComment[0];
-
-            int idx = qry.indexOf(", [");            
-            if (idx > 0) {
-                qry = qry.substring(0, idx).trim();                
-            }
-                       
-            if (qryComment.length == 2) {
-                String psIdentifier = qryComment[1];
-                int nridx = psIdentifier.length() - 1;
-                while (Character.isDigit(psIdentifier.charAt(nridx)))
-                {
-                    nridx--;
-                }
-                psIdentifier = psIdentifier.substring(0, nridx + 1);
-                int max_id_ps_cnt = getMaxIdPsCnt(psIdentifier) + 1;
-                for (int n = 1; n < max_id_ps_cnt; n++)
-                {
-                    getPs(conn, qry,  psIdentifier + n);
-                }
-                
-            }
-            else {
-                getPs(conn, qry);
-            }
+        }
+        catch (Exception ex)
+        {
+            LogManager.err_db("Fehler bei createPoolPs", ex);            
+        }
+        finally{
+            skipMsg = false;
         }
     }
 
@@ -179,9 +201,30 @@ public class PsMaker {
         String key = qry + ";" + identifier;
         PreparedStatement st = stMap.get(key.toUpperCase());
         if (st == null) {
-            st = conn.prepareStatement(qry);
+            if (qry.toLowerCase().startsWith("select "))
+            {
+                // We read w/o update or write
+                st = conn.prepareStatement(qry, ResultSet.TYPE_FORWARD_ONLY,  ResultSet.CONCUR_READ_ONLY );
+            }
+            else
+            {
+                st = conn.prepareStatement(qry);
+            }
+            
             stMap.put(key.toUpperCase(), st);
-            Log.warning("PreparedStatement " + key);
+            if (!skipMsg)
+            {
+                
+                Log.warning("PreparedStatement " + key);
+                
+                // THIS SEEMST TO HELP AGAINST SPURIOUS EXCEPTIONS DURING RUNTIME
+                try {
+                    Thread.sleep(1000);
+                }
+                catch (InterruptedException ex) {
+                    LogManager.err_db("Fehler bei getPs", ex);      
+                }
+            }
         }
         return st;
     }

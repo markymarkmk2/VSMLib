@@ -24,6 +24,7 @@ import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.net.URL;
 import java.util.HashMap;
 
@@ -147,6 +148,10 @@ class HessianSocketConnection extends AbstractHessianConnection
 
 
 
+
+
+
+
 class HessianSocketConnectionFactory extends AbstractHessianConnectionFactory
 {
       int maxConnections = 10;
@@ -162,6 +167,19 @@ class HessianSocketConnectionFactory extends AbstractHessianConnectionFactory
         this.txTimeout = txTimeout;
     }
 
+    public void setConnTimeout( int connTimeout ) {
+        this.connTimeout = connTimeout;
+    }
+
+    public void setTxTimeout( int txTimeout ) throws SocketException {
+        this.txTimeout = txTimeout;
+        HessianNoCloseSocket sock = socketOwner.getSocket();
+        if (sock.isConnected() && !sock.isClosed())
+            sock.setSoTimeout(txTimeout);        
+    }
+    
+
+    
 
 
     @Override
@@ -247,7 +265,29 @@ public class RemoteCallFactory implements SocketOwner
     public void setConnectTimeout( int timeout )
     {
         this.connTimeout = timeout;
+        if (hfactory.getConnectionFactory() instanceof HessianSocketConnectionFactory)
+        {
+            ((HessianSocketConnectionFactory)hfactory.getConnectionFactory()).setConnTimeout(timeout);
+        }
     }
+    public void setTxTimeout( int timeout ) throws SocketException
+    {
+        this.txTimeout = timeout;
+        hfactory.setReadTimeout(timeout);
+        if (hfactory.getConnectionFactory() instanceof HessianSocketConnectionFactory)
+        {
+            ((HessianSocketConnectionFactory)hfactory.getConnectionFactory()).setTxTimeout(timeout);
+        }
+    }
+
+    public int getConnTimeout() {
+        return connTimeout;
+    }
+
+    public int getTxTimeout() {
+        return txTimeout;
+    }
+    
 
 
     public void resetSocket() throws IOException
