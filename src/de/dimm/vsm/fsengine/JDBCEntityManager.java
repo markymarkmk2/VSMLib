@@ -13,6 +13,7 @@ import de.dimm.vsm.records.FileSystemElemNode;
 import de.dimm.vsm.records.StoragePool;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -129,11 +130,11 @@ public class JDBCEntityManager implements GenericEntityManager
     HashMap<String, FieldEntry> fieldMap;
     int find_stack_count = 0;
     HashMap<String, PreparedStatement> insertStatementMap;
-    HashMap<String, String> linkSelectPSMap = new HashMap<String, String>();
+    HashMap<String, String> linkSelectPSMap = new HashMap<>();
     HashMap<String, PreparedStatement> linkStatementMap;
     HashMap<String, Object> objectMap;
     PreparedStatement selectChildren;
-    HashMap<String, String> selectPSMap = new HashMap<String, String>();
+    HashMap<String, String> selectPSMap = new HashMap<>();
     HashMap<String, PreparedStatement> selectStatementMap;
     int statemenCnt = 0;
     Savepoint tx;
@@ -162,6 +163,8 @@ public class JDBCEntityManager implements GenericEntityManager
     JDBCConnectionFactory connFactory;
     
     PsMaker psMaker;
+    
+    XStream xStream = new XStream(); 
     
     static ConcurrentHashMap<Class, String> simpleNameHashMap = new ConcurrentHashMap<>();
 
@@ -282,7 +285,6 @@ public class JDBCEntityManager implements GenericEntityManager
     {
         try
         {
-            
             //Object poolingDriver = emf.getProperties().get("vsm.persistence.jdbc.pooldatasource");
             Object pwd = emf.getProperties().get("javax.persistence.jdbc.password");
             Object user = emf.getProperties().get("javax.persistence.jdbc.user");
@@ -290,9 +292,7 @@ public class JDBCEntityManager implements GenericEntityManager
             if (jdbcUrl != null)
                 url = jdbcUrl;
 
-
             ConnectionPoolDataSource cds = null;
-
 
             if (url.startsWith("jdbc:derby"))
             {
@@ -310,8 +310,6 @@ public class JDBCEntityManager implements GenericEntityManager
                     derby_cds.setDatabaseName(db);
                     derby_cds.setUser(user.toString());
                     derby_cds.setPassword(pwd.toString());
-
-
 
                     for (int i = 1; i < urlParts.length; i++)
                     {
@@ -355,26 +353,17 @@ public class JDBCEntityManager implements GenericEntityManager
                             derby_cds.setCreateDatabase ("create");
                         }
                     }
-                }
-                
+                }                
             }
 
-
             MiniConnectionPoolManager pm = new MiniConnectionPoolManager(cds, MAX_CONNECTIONS);
-
             return pm;
         }
-        catch (Exception exc)
+        catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IOException | NumberFormatException exc)
         {
             throw new IOException("cannot load jdbc connection: " + jdbcUrl, exc);
         }
     }
-
-//    public static MiniConnectionPoolManager getJdbcPoolManager() throws IOException
-//    {
-//
-//        return poolManager;
-//    }
 
 
     <T> PreparedStatement _getSelectStatement( Class<T> o, String add_qry, boolean doComment, String comment ) throws SQLException
@@ -454,8 +443,6 @@ public class JDBCEntityManager implements GenericEntityManager
         try
         {
             String table = getSimpleName(o).toUpperCase();
-            String[] keys = new String[1];
-            keys[0] = "idx";
             StringBuilder sb = new StringBuilder();
             sb.append("select ");
             if (distinct)
@@ -464,8 +451,8 @@ public class JDBCEntityManager implements GenericEntityManager
 
             StringBuilder sb_fields = new StringBuilder();
             
-            ArrayList<String> links = new ArrayList<String>();
-            ArrayList<String> tables = new ArrayList<String>();
+            ArrayList<String> links = new ArrayList<>();
+            ArrayList<String> tables = new ArrayList<>();
             tables.add(table);
             sb_fields.append(getFieldList(o, o, tables, links, null));
             sb.append(sb_fields);
@@ -541,7 +528,7 @@ public class JDBCEntityManager implements GenericEntityManager
             }
             return sb.toString();
         }
-        catch (Exception exception)
+        catch (NoSuchMethodException | IllegalAccessException | IllegalArgumentException | InvocationTargetException exception)
         {
             LogManager.err_db( "Error in build_select_string", exception );
             throw new SQLException("Error in build_select_string", exception);
@@ -660,21 +647,19 @@ public class JDBCEntityManager implements GenericEntityManager
     private String copy( String s )
     {
         if (s == null)
-            return s;
-        
+            return s;        
         return String.copyValueOf(s.toCharArray());
     }
     
     public <T> T createObject( ResultSet rs, Class<T> t ) throws SQLException, InstantiationException, IllegalAccessException, NoSuchFieldException, NoSuchMethodException, IllegalArgumentException, InvocationTargetException
-    {
-        XStream xs = new XStream();
+    {        
         T ret_val = null;
-        HashMap<String, Object> localObjectMap = new HashMap<String, Object>();
-        ArrayList<Object> newObjects = new ArrayList<Object>();
+        HashMap<String, Object> localObjectMap = new HashMap<>();
+        ArrayList<Object> newObjects = new ArrayList<>();
         String tablename = getSimpleName(t);
         int cols = rs.getMetaData().getColumnCount();
         Object objectToFill = null;
-        Object lastObjectToFill = null;
+        Object lastObjectToFill;
         for (int i = 1; i <= cols; i++)
         {
             String tablePrefix = rs.getMetaData().getTableName(i);
@@ -701,16 +686,9 @@ public class JDBCEntityManager implements GenericEntityManager
                     setter.setAccessible(true);
                     setter.set(lastObjectToFill, objectToFill);
                     setter.setAccessible(ac);
-                    //                        String subObjectName = le.fieldName;
-                    //                        String methodName = "set" + Character.toUpperCase(subObjectName.charAt(0)) + subObjectName.substring(1);
-                    //
-                    //                        //Field f = lastObjectToFill.getClass().getDeclaredField(le.fieldName);
-                    //                        Method linkSetter = lastObjectToFill.getClass().getMethod(methodName, objectToFill.getClass());
-                    //                        linkSetter.invoke(lastObjectToFill, objectToFill);
                 }
             }
             final FieldEntry fe = getClassforIgnCaseField(getSimpleName(objectToFill.getClass()), name);
-            //String methodName = "set" + Character.toUpperCase(name.charAt(0)) + fe.name.substring(1);
             try
             {
                 synchronized(this)
@@ -720,7 +698,7 @@ public class JDBCEntityManager implements GenericEntityManager
                     boolean ac = setter.isAccessible();
                     setter.setAccessible(true);
 
-                    if (name.equalsIgnoreCase("idx") && (fe.field.getDeclaringClass() == ret_val.getClass()))
+                    if (name.equalsIgnoreCase("idx") && ret_val != null && (fe.field.getDeclaringClass() == ret_val.getClass()))
                     {
                         // SET IDX
                         Long idx = (Long) rs.getObject(i);
@@ -730,14 +708,10 @@ public class JDBCEntityManager implements GenericEntityManager
                         if (c_Create2Cache)
                         {
                             ConcurrentCache c = getCache(OBJECT_CACHE);
-                            String key = makeKeyFromObj( idx, objectToFill  );
-                            if (objectToFill == null)
-                                throw new IOException("Null??");
-
+                            String key = makeKeyFromObj( idx, objectToFill  );                            
                             c.putIfAbsent( new Element(key, objectToFill));
                         }
                     }
-                    //System.out.println(fe.clazz.getName());
                     else if(fe.clazz.getName().equals("boolean"))
                     {
                         setter.setBoolean(objectToFill, rs.getBoolean(i));
@@ -763,11 +737,11 @@ public class JDBCEntityManager implements GenericEntityManager
                         {
                             InputStream is = blob.getBinaryStream();
                             try
-                            {                                
-                                Object so = xs.fromXML(is);
+                            {                                               
+                                Object so = xStream.fromXML(is);
                                 setter.set(objectToFill, so);
                             }
-                            catch (Exception exception)
+                            catch (IllegalArgumentException | IllegalAccessException exception)
                             {
                                 LogManager.err_db("Cannot deserialize Object " + getSimpleName(fe.clazz), exception);
                                 setter.set(objectToFill, null);
@@ -807,10 +781,8 @@ public class JDBCEntityManager implements GenericEntityManager
                                     {
                                         incHitCount();
                                         newObject = elem.getValue();
-                                        //updateLazyListHandlers(newObject);
                                     }
                                 }
-
                                 if (elem == null)
                                 {
                                     find_stack_count++;
@@ -842,18 +814,6 @@ public class JDBCEntityManager implements GenericEntityManager
                             val = copy(val.toString());
 
                         setter.set(objectToFill, val);
-                        //                    if (name.toUpperCase().equals("IDX") && val instanceof Long)
-                        //                    {
-                        //                        // ADD OBJECT WITH INDEX TO CACHE
-                        //                        Cache c = getCache(OBJECT_CACHE);
-                        //                        Long idx = (Long)val;
-                        //                        String key = idx.toString() + objectToFill.getClass().getSimpleName();
-                        //                        if (c.get(key) != null)
-                        //                        {
-                        //                            System.out.println("Found object in cache, shouldnt be there!" );
-                        //                        }
-                        //                        c.put( new Element( key, objectToFill));
-                        //                    }
                     }
                     setter.setAccessible(ac);
                 }
@@ -943,11 +903,11 @@ public class JDBCEntityManager implements GenericEntityManager
             }
         }
 
-        List<T> list = new ArrayList<T>();
+        List<T> list = new ArrayList<>();
         Statement st = null;
         try
         {
-            T t = null;
+            T t;
             st = getConnection().createStatement();
             String selectQryString = build_select_string(aClass, altTableString, where_clause_string, order_clause, distinct);
 
@@ -956,20 +916,20 @@ public class JDBCEntityManager implements GenericEntityManager
                 st.setMaxRows(maxResults);
                 selectQryString += " fetch first " + maxResults + " rows only";
             }
-            ResultSet rs = st.executeQuery(selectQryString);
-            while (rs.next())
-            {
-                try
+            try (ResultSet rs = st.executeQuery(selectQryString)) {
+                while (rs.next())
                 {
-                    t = (T) createObject(rs, aClass);
-                    list.add(t);
-                }
-                catch (Exception exception)
-                {
-                    throw new SQLException("Cannot createObject", exception);
+                    try
+                    {
+                        t = (T) createObject(rs, aClass);
+                        list.add(t);
+                    }
+                    catch (SQLException | InstantiationException | IllegalAccessException | NoSuchFieldException | NoSuchMethodException | IllegalArgumentException | InvocationTargetException exception)
+                    {
+                        throw new SQLException("Cannot createObject", exception);
+                    }
                 }
             }
-            rs.close();
 
             return list;
         }
@@ -996,7 +956,7 @@ public class JDBCEntityManager implements GenericEntityManager
     @Override
     public List<Object[]> createNativeQuery( String string, int maxResults, int maxSeconds ) throws SQLException
     {
-        List<Object[]> list = new ArrayList<Object[]>();
+        List<Object[]> list = new ArrayList<>();
         Statement st = null;
         try
         {
@@ -1008,19 +968,19 @@ public class JDBCEntityManager implements GenericEntityManager
                 st.setMaxRows(maxResults);
                 st.setFetchSize( maxResults );
             }
-            ResultSet rs = st.executeQuery(string);
-            while (rs.next())
-            {
-                int cols = rs.getMetaData().getColumnCount();
-                Object[] arr = new Object[cols];
-
-                for (int i = 0; i < arr.length; i++)
+            try (ResultSet rs = st.executeQuery(string)) {
+                while (rs.next())
                 {
-                    arr[i] = rs.getObject(i + 1);
+                    int cols = rs.getMetaData().getColumnCount();
+                    Object[] arr = new Object[cols];
+
+                    for (int i = 0; i < arr.length; i++)
+                    {
+                        arr[i] = rs.getObject(i + 1);
+                    }
+                    list.add(arr);
                 }
-                list.add(arr);
             }
-            rs.close();
 
             return list;
         }
@@ -1073,28 +1033,25 @@ public class JDBCEntityManager implements GenericEntityManager
                 String selectQryString = build_select_string(aClass, where_clause);
                 selectQryString += " fetch first " + 1 + " rows only";
                 st.setMaxRows(1);
-                
-                ResultSet rs = st.executeQuery(selectQryString);
-                if (rs.next())
-                {
-                    try
+                try (ResultSet rs = st.executeQuery(selectQryString)) {
+                    if (rs.next())
                     {
-                        t = (T) createObject(rs, aClass);
-                    }
-                    catch (Exception exception)
-                    {
-                        throw new SQLException("Cannot createSingleResultQuery", exception);
+                        try
+                        {
+                            t = (T) createObject(rs, aClass);
+                        }
+                        catch (SQLException | InstantiationException | IllegalAccessException | NoSuchFieldException | NoSuchMethodException | IllegalArgumentException | InvocationTargetException exception)
+                        {
+                            throw new SQLException("Cannot createSingleResultQuery", exception);
+                        }
                     }
                 }
-                rs.close();
                 if (t != null)
                 {
                     if (c_CreateSingleQuery2Cache)
                     {
                         ConcurrentCache c = getCache(OBJECT_CACHE);
                         String key = makeKeyFromStr( getIdx(t), getSimpleName(aClass));
-                        if (t == null)
-                            throw new SQLException("Null??");
                         c.putIfAbsent(new Element(key, t));
                     }
                 }
@@ -1151,7 +1108,7 @@ public class JDBCEntityManager implements GenericEntityManager
                     }
                     field.setAccessible(ac);
                 }
-                catch (Exception exception)
+                catch (SecurityException | IllegalArgumentException | IllegalAccessException exception)
                 {
                     LogManager.err_db("cannot detach object " + o.toString(), exception);
                 }
@@ -1198,7 +1155,7 @@ public class JDBCEntityManager implements GenericEntityManager
     public <T> T em_find( Class<T> t, long idx )
     {
         ResultSet rs = null;
-        T ret_val = null;
+        T ret_val;
         int pscount = -1;
         try
         {
@@ -1238,7 +1195,7 @@ public class JDBCEntityManager implements GenericEntityManager
 
             return ret_val;
         }
-        catch (Exception e)
+        catch (SQLException | InstantiationException | IllegalAccessException | NoSuchFieldException | NoSuchMethodException | IllegalArgumentException | InvocationTargetException e)
         {   
             LogManager.err_db("Error resolving Object " + getSimpleName(t) + idx, e);
         }
@@ -1295,7 +1252,7 @@ public class JDBCEntityManager implements GenericEntityManager
 
         ps = getUpdateStatement(t);
 
-        long idx = 0;
+        long idx;
 
         // SYNCHRONIZE ON INSERT STATEMENT -> EVERY TABLE IS SYNCHRONIZED ON INSERT -> WE CAN USE MAX(IDX) TO GET NEXT INDEX
         synchronized (ps )
@@ -1381,7 +1338,7 @@ public class JDBCEntityManager implements GenericEntityManager
             f.setLong(o, newIndex);
             f.setAccessible(ac);
         }
-        catch (Exception exception)
+        catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException exception)
         {
              throw new RuntimeException(exception.getMessage());
         }
@@ -1394,9 +1351,7 @@ public class JDBCEntityManager implements GenericEntityManager
             long idx = getIdx(o);
             //System.out.println("Persisting " + o.getClass().getSimpleName() + ":" + idx);
             ConcurrentCache c = getCache(OBJECT_CACHE);
-            String key = makeKeyFromObj( idx, o );
-            if (o == null)
-                throw new SQLException("Null??");
+            String key = makeKeyFromObj( idx, o );            
             c.putIfAbsent(new Element(key, o));
         }
     }
@@ -1493,17 +1448,11 @@ public class JDBCEntityManager implements GenericEntityManager
                 {
                     LazyList ll = (LazyList) _ll;
                     ll.unRealize();
-                    //ll.handler = this;
-                    
+                    //ll.handler = this;                    
                 }
-                field.setAccessible(ac);
-                
-
+                field.setAccessible(ac);                
             }
-            catch (IllegalArgumentException illegalArgumentException)
-            {
-            }
-            catch (IllegalAccessException illegalAccessException)
+            catch (IllegalArgumentException | IllegalAccessException illegalArgumentException)
             {
             }
         }
@@ -1541,7 +1490,7 @@ public class JDBCEntityManager implements GenericEntityManager
         return key;
     }
             
-    Map<String,AnnotationEntry> annotationMap = new HashMap<String,AnnotationEntry>();
+    Map<String,AnnotationEntry> annotationMap = new HashMap<>();
     AnnotationEntry getAnnotationEntry( Field field, Class<?> clazz) {
         String key = getKey( field, clazz);
         return annotationMap.get(key);        
@@ -1636,7 +1585,7 @@ public class JDBCEntityManager implements GenericEntityManager
                             }
 
                         }
-                        catch (Exception exception)
+                        catch (IllegalArgumentException | IllegalAccessException | SQLException exception)
                         {
                             throw new SQLException("Cannot access child", exception);
                         }
@@ -1644,12 +1593,12 @@ public class JDBCEntityManager implements GenericEntityManager
                     }
                 }
             }
-            if (remove_child)
+            if (remove_child && childs != null)
             {
                 try
                 {
 
-                    while (childs.size() > 0)
+                    while (!childs.isEmpty())
                     {
                         Object child = childs.remove(0);
                         em_remove(child);
@@ -1668,17 +1617,9 @@ public class JDBCEntityManager implements GenericEntityManager
         PreparedStatement ps = getDeleteStatement(o);
         long idx = getIdx(o);
         ps.setLong(1, idx);
-        //System.out.println("Removing " + o.getClass().getSimpleName() + ":" + idx);
-//        if (o.getClass() == FileSystemElemNode.class)
-//        {
-//            List<Object[]> list = createNativeQuery( "Select idx from FileSystemElemAttributes T1 where t1.file_idx=" + idx , 10 );
-//            System.out.println("Attribs with same FileIdx:" + list.size());
-//             list = createNativeQuery( "Select idx from FileSystemElemNode T1 where t1.parent_idx=" + idx , 10 );
-//            System.out.println("Children with same ParentIdx:" + list.size());
-//
-//        }
+
         ps.execute();
-//        conn.commit();
+
 
         // UPDATE CACHE
         ConcurrentCache c = getCache(OBJECT_CACHE);
@@ -1709,7 +1650,7 @@ public class JDBCEntityManager implements GenericEntityManager
                         {
                             childs.add(field.get(o));
                         }
-                        catch (Exception exception)
+                        catch (IllegalArgumentException | IllegalAccessException exception)
                         {
                             throw new SQLException("Cannot access child", exception);
                         }
@@ -1717,11 +1658,11 @@ public class JDBCEntityManager implements GenericEntityManager
                     }
                 }
             }
-            if (remove_child)
+            if (remove_child && childs != null)
             {
                 try
                 {
-                    while (childs.size() > 0)
+                    while (!childs.isEmpty())
                     {
                         Object child = childs.remove(0);
                         em_remove(child);
@@ -1754,7 +1695,7 @@ public class JDBCEntityManager implements GenericEntityManager
         
         
     }
-    HashMap<String,OtmMap> fieldOtmHashMap = new HashMap<String, OtmMap>();
+    HashMap<String,OtmMap> fieldOtmHashMap = new HashMap<>();
 
     private static final String OTM_NONE = "otm_none";
     private static final String OTM_LAZY = "otm_lazy";
@@ -1763,11 +1704,10 @@ public class JDBCEntityManager implements GenericEntityManager
 
     OtmMap buildOtmMap( String key, Field elem, Object o ) throws NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException
     {
-        OtmMap map = null;
+        OtmMap map;
         OneToMany otm = getAnnotation(elem, OneToMany.class);
         if (otm != null)
-        {
-            Method m = o.getClass().getMethod("getIdx", (Class[]) null);
+        {            
             String field = otm.mappedBy() + "_idx";
             Class type = (Class) ((ParameterizedType) elem.getGenericType()).getActualTypeArguments()[0];
             if (otm.fetch() == FetchType.EAGER)
@@ -2066,15 +2006,14 @@ public class JDBCEntityManager implements GenericEntityManager
         if (value instanceof RemoteFSElem)
         {
             try
-            {
-                XStream xs = new XStream();
-                String xml = xs.toXML(value);
+            {               
+                String xml = xStream.toXML(value);
                 SerialBlob blob = new SerialBlob(xml.getBytes("UTF-8"));
                 return blob;
             }
-            catch (Exception exception)
+            catch (UnsupportedEncodingException | SQLException exception)
             {
-                throw new IllegalArgumentException("cannot store RemoteFsElem");
+                throw new IllegalArgumentException("cannot store RemoteFsElem", exception);
             }
         }
         if (value instanceof Long)
@@ -2122,9 +2061,9 @@ public class JDBCEntityManager implements GenericEntityManager
             Long idx = (Long) m.invoke(o, (Object[]) null);
             return idx;
         }
-        catch (Exception exception)
+        catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException exception)
         {
-        throw new RuntimeException("Illegal Object for getIdx", exception);
+            throw new RuntimeException("Illegal Object for getIdx", exception);
         }
     }
 
@@ -2136,7 +2075,6 @@ public class JDBCEntityManager implements GenericEntityManager
         {
             return ps;
         }
-        String[] keys = new String[1];
         StringBuilder sb = new StringBuilder();
         sb.append("insert into ");
         sb.append(table);
@@ -2151,11 +2089,6 @@ public class JDBCEntityManager implements GenericEntityManager
             if (skipField(field))
             {
                 continue;
-            }
-            if (existsAnnotation(field, Id.class))
-            {
-                keys[0] = field.getName();
-                //                continue;
             }
             if (existsAnnotation(field, OneToMany.class))
             {
@@ -2438,7 +2371,7 @@ public class JDBCEntityManager implements GenericEntityManager
     }
 
 
-    final static HashMap<String,NewIndexEntry> newIndexCacheMap = new HashMap<String, NewIndexEntry>();
+    final static HashMap<String,NewIndexEntry> newIndexCacheMap = new HashMap<>();
 
     // EM_PERSIST IS ALREADY SYNCHRONIZED, BUT WE DO IT ANYWAY
     public static synchronized long newIndexValue( JDBCEntityManager em, Object newObject ) throws SQLException
@@ -2461,11 +2394,11 @@ public class JDBCEntityManager implements GenericEntityManager
         }
         
         PreparedStatement ps = em.getNewIndexStatement(simpleName);
-
-        ResultSet rs = ps.executeQuery();
-        rs.next();
-        long idx = rs.getLong(1);
-        rs.close();
+        long idx;
+        try (ResultSet rs = ps.executeQuery()) {
+            rs.next();
+            idx = rs.getLong(1);
+        }
         
         idx++;
         NewIndexEntry ne = new NewIndexEntry(simpleName, idx);
@@ -2477,9 +2410,7 @@ public class JDBCEntityManager implements GenericEntityManager
     
     public Statement createStatement( ) throws SQLException
     {
-        Statement st = null;
-        st = getConnection().createStatement();
-        return st;
+        return getConnection().createStatement();
     }
 
     public int nativeUpdate( Statement st, String string )
