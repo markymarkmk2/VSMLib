@@ -34,8 +34,7 @@ class QueueRunnerTask implements Runnable
             {
                 QueueElem elem = aiw.workList.poll(aiw.sleepMilisecondOnEmpty, TimeUnit.MILLISECONDS);
                 if (elem != null)
-                {
-                   
+                {                   
                     elem.run();
 
                     // BLOCKING FOR CHECKING IS READY
@@ -147,12 +146,18 @@ public class QueueRunner
 
     public void flush()
     {
-        int maxCnt = 300;
-        while (!workList.isEmpty() && maxCnt-- > 0)
+        long start = System.currentTimeMillis();
+        while (!workList.isEmpty())
         {
             try
             {
                 Thread.sleep(100);
+                long now = System.currentTimeMillis();
+                if (now - start > 60*1000)
+                {
+                    LogManager.msg_system(LogManager.LVL_ERR, "QueueRunner Timeout on flush");
+                    break;
+                }
             }
             catch (InterruptedException ex)
             {
@@ -189,7 +194,4 @@ public class QueueRunner
     {
         return workList.size();
     }
-
-   
-    
 }

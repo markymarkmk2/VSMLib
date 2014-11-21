@@ -230,9 +230,14 @@ public class CryptTools
         return null;
     }
 
-    public static String encodeUrlsafe( byte[] hash ) throws UnsupportedEncodingException
+    public static String encodeUrlsafe( byte[] hash )
     {
-        return new String(Base64.encodeBase64(hash, false, true), "UTF8");
+        try {
+            return new String(Base64.encodeBase64(hash, false, true), "UTF8");
+        }
+        catch (UnsupportedEncodingException unsupportedEncodingException) {
+            throw new RuntimeException("Impossible Error encodeUrlsafe", unsupportedEncodingException);
+        }
     }
 
 

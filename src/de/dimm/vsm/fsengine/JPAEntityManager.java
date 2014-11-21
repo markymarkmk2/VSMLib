@@ -5,6 +5,7 @@
 
 package de.dimm.vsm.fsengine;
 
+import de.dimm.vsm.records.HashBlock;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
@@ -357,6 +358,11 @@ public class JPAEntityManager implements GenericEntityManager
     public <T> List<T> createQuery( String string, Class<T> aClass, int maxResults, boolean distinct, int maxSeconds ) throws SQLException
     {
         throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public List<HashBlock> getDistinctHashBlockStatement( long idx, long offset ) throws SQLException {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
 }

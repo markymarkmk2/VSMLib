@@ -305,9 +305,13 @@ public class StoragePoolQry implements Serializable
 
             List<VSMAclEntry> acls = ac.getAcl();
             
-            // Nix parametriert -> alles erlaubt
+            // Neu: Auch der Owner einer Datei ist zulässig als Vergleich
+            if ( user.isAllowed(ac.getUserName())) {
+                return true;
+            }
             
-            if (acls.isEmpty()) 
+            // Nix parametriert -> alles erlaubt            
+            if (acls == null || acls.isEmpty()) 
                 return true;
             
             boolean existsAllow = false;
@@ -354,20 +358,32 @@ public class StoragePoolQry implements Serializable
                 else
                 {
                     // POSIX OWNER
-                    if (vSMAclEntry.principalName().equals("OWNER@"))
+                    if (!user.skipPosixIntrinsicAcl())
                     {
-                        if (ac.getUserName() != null && ac.getUserName().equalsIgnoreCase(user.getUserName()))
+                        if (vSMAclEntry.principalName().equals("OWNER@"))
                         {
-                            if (isAccessDeny( vSMAclEntry ))
-                                return false;
-                            if (isAccessAllow( vSMAclEntry ))
-                                return true;
+                            if (ac.getUserName() != null && user.isAllowed(ac.getUserName()))
+                            {
+                                if (isAccessDeny( vSMAclEntry ))
+                                    return false;
+                                if (isAccessAllow( vSMAclEntry ))
+                                    return true;
+                            }
                         }
-                    }
-                    // POSIX GROUP
-                    else if(vSMAclEntry.principalName().equals("GROUP@"))
-                    {
-                        if (isInPosixGroup( attr, user ))
+                        // POSIX GROUP
+                        if(vSMAclEntry.principalName().equals("GROUP@"))
+                        {
+                            if (isInPosixGroup( attr, user ))
+                            {
+                                if (isAccessDeny( vSMAclEntry ))
+                                    return false;
+                                if (isAccessAllow( vSMAclEntry ))
+                                    return true;
+                                // TODO: ALARM, AUDIT
+                            }
+                        }
+                        // POSIX OTHER
+                        if(vSMAclEntry.principalName().equals("EVERYONE@") || vSMAclEntry.principalName().equals("\\Everyone"))
                         {
                             if (isAccessDeny( vSMAclEntry ))
                                 return false;
@@ -376,16 +392,7 @@ public class StoragePoolQry implements Serializable
                             // TODO: ALARM, AUDIT
                         }
                     }
-                    // POSIX OTHER
-                    else if(vSMAclEntry.principalName().equals("EVERYONE@") || vSMAclEntry.principalName().equals("\\Everyone"))
-                    {
-                        if (isAccessDeny( vSMAclEntry ))
-                            return false;
-                        if (isAccessAllow( vSMAclEntry ))
-                            return true;
-                        // TODO: ALARM, AUDIT
-                    }
-                    else if (user.isAllowed( vSMAclEntry.principalName()) )
+                    if (user.isAllowed( vSMAclEntry.principalName()) )
                     {
                         if (isAccessDeny( vSMAclEntry ))
                             return false;

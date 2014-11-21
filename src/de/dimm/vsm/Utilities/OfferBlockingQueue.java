@@ -23,7 +23,7 @@ public class OfferBlockingQueue<E> extends ArrayBlockingQueue<E>
     {
         try
         {
-            put(e);
+            put(e);            
         }
         catch (InterruptedException interruptedException)
         {

@@ -7,6 +7,7 @@ package de.dimm.vsm.auth;
 
 import de.dimm.vsm.fsengine.ArrayLazyList;
 import de.dimm.vsm.hash.StringUtils;
+import de.dimm.vsm.log.LogManager;
 import de.dimm.vsm.net.RemoteFSElem;
 import de.dimm.vsm.records.FileSystemElemNode;
 import de.dimm.vsm.records.Role;
@@ -33,11 +34,23 @@ public class User implements Serializable
     Map<String,Integer> groups;
     
     public static final String FS_MAPPINGFOLDER = "fsmapping";
+    public static final String GROUP_MAPPINGFOLDER = "groupmapping";
+    public static final String MAPPING_EXT = ".txt";
     
-    boolean ignoreAcl;
+    public static final String SKIP_POSIX_ACL_OPT = "skipPosixAcl";
+    
+    boolean ignoreAcl= false;
     Role role;
    
     VsmFsMapper fsMapper;
+    
+    List<String> allowGroups = new ArrayList<>();
+    List<String> denyGroups = new ArrayList<>();
+    List<String> allowUsers = new ArrayList<>();
+    List<String> denyUsers = new ArrayList<>();
+    boolean skipPosixIntrinsicAcl = false;
+    
+    //Todo: Sichtbarkeit Default für Dateien ohne ACL j/n -> @EVERYONE abschalten
     
 
     public boolean isAllowed( String principalName )
@@ -47,6 +60,16 @@ public class User implements Serializable
         if (domainIndex >= 0)
             principalUsername = principalName.substring(domainIndex + 1);
 
+        String name = principalUsername.toLowerCase();
+        
+        if (allowUsers.contains(name)) {
+            return true;
+        }
+        if (denyUsers.contains(name)) {
+            return false;
+        }
+            
+            
         if (principalUsername.equalsIgnoreCase(userName) || principalUsername.equalsIgnoreCase(loginName))
             return true;
 
@@ -55,8 +78,23 @@ public class User implements Serializable
 
     public boolean isMemberOfGroup( String gname )
     {
-        return groups.containsKey(gname.toLowerCase());
+        String principalGname = gname;
+        int domainIndex = principalGname.lastIndexOf("\\");
+        if (domainIndex >= 0)
+            principalGname = principalGname.substring(domainIndex + 1);
+        
+        String lgname = principalGname.toLowerCase();
+        if (allowGroups.contains(lgname)) {
+            return true;
+        }
+        if (denyGroups.contains(lgname)) {
+            return false;
+        }
+        return groups.containsKey(lgname);
+    }
 
+    public boolean skipPosixIntrinsicAcl() {
+        return skipPosixIntrinsicAcl;
     }
 
     public class VsmFsMapper implements Serializable
@@ -399,7 +437,7 @@ public class User implements Serializable
      */
     public static User createSystemInternal()
     {
-        User user = new User("system", "system", "system");
+        User user = new User("system", "system", "internal");
         Role role = new Role();
         ArrayLazyList<RoleOption> rolist = new ArrayLazyList<>();
         rolist.add(new RoleOption(0, role, RoleOption.RL_ADMIN, 0, ""));
@@ -426,7 +464,7 @@ public class User implements Serializable
         if (role.hasRoleOption(RoleOption.RL_FSMAPPINGFILE))
         {
             loadVsmMapping();
-        }
+        }        
     }
 
     public Role getRole()
@@ -434,7 +472,7 @@ public class User implements Serializable
         return role;
     }
 
-    private void loadVsmMapping()
+    public void loadVsmMapping()
     {
         fsMapper.getVsmList().clear();
 
@@ -446,13 +484,16 @@ public class User implements Serializable
             if (opt.getToken() == null || !opt.getToken().equals(RoleOption.RL_FSMAPPINGFILE))
                 continue;
 
-            final File f = new File( FS_MAPPINGFOLDER,opt.getOptionStr());
+            File f = new File( FS_MAPPINGFOLDER,opt.getOptionStr() + MAPPING_EXT);
+            if (!f.exists()) {
+                f = new File( FS_MAPPINGFOLDER,opt.getOptionStr());
+            }
            
             try (FileReader fw = new FileReader(f))
             {
                 char[] cbuff = new char[(int)f.length()];
-                fw.read(cbuff);
-                content = new String(cbuff);
+                int len = fw.read(cbuff);
+                content = new String(cbuff, 0, len);
             }
             catch (Exception iOException)
             {
@@ -544,4 +585,122 @@ public class User implements Serializable
     {
         return fsMapper.mapVsmToUserPath(path);
     }
+    
+    public void loadGroupMapping()
+    {
+        for (int i = 0; i < role.getRoleOptions().size(); i++)
+        {
+            String content = null;
+            RoleOption opt =  role.getRoleOptions().get(i);
+            if (opt.getToken() == null || !opt.getToken().equals(RoleOption.RL_GROUPMAPPINGFILE))
+                continue;
+
+            File f = new File( GROUP_MAPPINGFOLDER,opt.getOptionStr() + MAPPING_EXT);
+            if (!f.exists()) {
+                f = new File( GROUP_MAPPINGFOLDER,opt.getOptionStr());
+            }
+           
+            try (FileReader fw = new FileReader(f))
+            {
+                char[] cbuff = new char[(int)f.length()];
+                int len = fw.read(cbuff);
+                content = new String(cbuff, 0, len);
+            }
+            catch (Exception iOException)
+            {
+                throw new IllegalArgumentException( "Fehler beim Lesen der Mappingdatei" , iOException);
+            }
+
+            loadGroupMappingContent( content );
+        }
+    }
+
+    private void loadGroupMappingContent( String s )
+    {
+        // Systax:
+        /*
+         * [User|Group]:<Name>:[Allow:Deny]:[User:Group]:<Name>[,<Name>...]
+         */
+        if (StringUtils.isEmpty(s))
+            return;
+        
+        s = s.replace('\r', '\n');
+        String[] arr = s.split("\n");
+        for (int i = 0; i < arr.length; i++)
+        {
+            String string = arr[i];
+            if (string.trim().isEmpty())
+            {
+                continue;
+            }
+            if (string.charAt(0) == '#')
+                continue;
+            
+            if (string.trim().equalsIgnoreCase(SKIP_POSIX_ACL_OPT)) {
+                LogManager.msg_auth(LogManager.LVL_DEBUG, "skipPosixAcl wurde aktiviert" );     
+                skipPosixIntrinsicAcl = true;
+                continue;
+            }
+            String[] entry = string.split(":");
+            if (entry.length < 5) {
+                LogManager.msg_auth(LogManager.LVL_ERR, "Ungültiger Eintrag in GroupMapping, zu wenige Argumente: "  + string );            
+                continue;
+            }
+            String type =  entry[0].trim().toLowerCase();
+            String entity =  entry[1].trim();
+            String action = entry[2].trim().toLowerCase();
+            String argsType = entry[3].trim().toLowerCase();
+            String argsArr = entry[4];
+            String[] args = argsArr.split(",");
+            if (args.length < 1) {
+                LogManager.msg_auth(LogManager.LVL_ERR, "Ungültiger Eintrag in GroupMapping, zu wenige Werte: "  + string );            
+                continue;
+            }
+            
+            // Not for us
+            if (!entity.equals("*")) {
+                if (type.equals("user")) {
+                    if (!userName.equalsIgnoreCase(entity)) {
+                        continue;
+                    }                    
+                }
+                if (type.equals("group")) {
+                    boolean found = false;
+                    for ( String group: groups.keySet()) {
+                        if (group.equalsIgnoreCase(entity)) {
+                            found = true;
+                            break;
+                        }                                        
+                    }
+                    if (!found) {
+                        continue;
+                    }
+                }
+            }
+            LogManager.msg_auth(LogManager.LVL_DEBUG, "Found valid group map entry: "  + string );     
+            
+            List<String> argsList = new ArrayList<>();
+            for (int a = 0; a < args.length; a++) {
+                argsList.add(args[a].trim());
+            }
+            
+            LogManager.msg_auth(LogManager.LVL_DEBUG, this.toString() + ": " + action + "ing " + argsType + "(s): "  + argsArr );  
+            if (argsType.equals("user") && action.equals("allow"))
+            {                
+                allowUsers.addAll(argsList);
+            }
+            if (argsType.equals("user") && action.equals("deny"))
+            {
+                denyUsers.addAll(argsList);
+            }
+            if (argsType.equals("group") && action.equals("allow"))
+            {
+                allowGroups.addAll(argsList);
+            }
+            if (argsType.equals("group") && action.equals("deny"))
+            {
+                allowGroups.addAll(argsList);
+            }
+        }
+    }        
 }

@@ -65,5 +65,14 @@ public interface RemoteFSApi {
     void writeFile( long idx, byte[] b, int length, long offset )throws IOException, SQLException, PoolReadOnlyException;
     void writeBlock( long idx, String hash, byte[] b, int length, long offset ) throws IOException, SQLException, PoolReadOnlyException, PathResolveException;
 
-   
+    void setAttribute( RemoteFSElem elem, String string, Integer valueOf ) throws IOException, SQLException, PoolReadOnlyException;
+    
+    String readSymlink(RemoteFSElem elem);
+    void createSymlink(RemoteFSElem elem, String to) throws IOException, SQLException, PoolReadOnlyException;
+    public String getXattribute( RemoteFSElem elem, String name ) throws SQLException;
+    public List<String> listXattributes(RemoteFSElem elem );
+    public void addXattribute( RemoteFSElem elem, String name, String valStr );
+    
+    public void updateElem(RemoteFSElem elem, long handleNo )  throws IOException, SQLException, PoolReadOnlyException;
+    
 }

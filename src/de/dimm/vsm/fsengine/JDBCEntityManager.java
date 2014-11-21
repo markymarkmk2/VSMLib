@@ -10,6 +10,7 @@ import de.dimm.vsm.log.LogManager;
 import de.dimm.vsm.net.RemoteFSElem;
 import de.dimm.vsm.records.FileSystemElemAttributes;
 import de.dimm.vsm.records.FileSystemElemNode;
+import de.dimm.vsm.records.HashBlock;
 import de.dimm.vsm.records.StoragePool;
 import java.io.IOException;
 import java.io.InputStream;
@@ -395,6 +396,11 @@ public class JDBCEntityManager implements GenericEntityManager
             LogManager.err_db("Error creating select statement " + getSimpleName(o) + " " + add_qry + " " + orderBy, exception);
         }
         return null;
+    }
+    <T> String buildSelectString( Class<T> o,String add_qry, String orderBy, boolean doComment, String comment ) throws SQLException
+    {
+        String selectQryString = build_select_string(o, /*addTable*/null, add_qry, orderBy);
+        return selectQryString;
     }
 
     int addOpenLinkSet( String string )
@@ -1905,6 +1911,32 @@ public class JDBCEntityManager implements GenericEntityManager
         //ps = getConnection().prepareStatement(sb.toString());
         deleteStatementMap.put(table, ps);
         return ps;
+    }
+    
+    @Override
+    public List<HashBlock> getDistinctHashBlockStatement( long fileNode_idx, long blockOffset ) throws SQLException
+    {
+        String qry = build_select_string(HashBlock.class, "T1.fileNode_idx=? and T1.blockOffset=?");        
+        PreparedStatement ps = psMaker.getPs(getConnection(), qry); 
+        ps.setLong(1, fileNode_idx);
+        ps.setLong(2, blockOffset);
+        List<HashBlock> list = new ArrayList<>();
+        
+        try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next())
+                {
+                    try
+                    {
+                        HashBlock b = createObject(rs, HashBlock.class);
+                        list.add(b);
+                    }
+                    catch (SQLException | InstantiationException | IllegalAccessException | NoSuchFieldException | NoSuchMethodException | IllegalArgumentException | InvocationTargetException exception)
+                    {
+                        throw new SQLException("Cannot createObject", exception);
+                    }
+                }
+            }        
+        return list;
     }
 
     <T> String getFieldList( Class<T> baseObject, Class o, ArrayList<String> tables, ArrayList<String> links, Field linkField ) throws NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException

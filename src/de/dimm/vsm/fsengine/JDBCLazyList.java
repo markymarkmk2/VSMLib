@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,8 +39,6 @@ public class JDBCLazyList<T> extends LazyList
         this.realList = null;
         this.cl = cl;
     }
-
-
     
     
     @Override
@@ -52,8 +51,97 @@ public class JDBCLazyList<T> extends LazyList
                 return realList;
             }
         }
+        return realizeWithSt( _handler);
+    }
+    
+    private List<T> realizeWithSt(GenericEntityManager _handler)
+    {
 
+        ResultSet rs = null;
+        if (!(_handler instanceof JDBCEntityManager))
+        {
+            throw new RuntimeException( "Unsupported EntityManager " + _handler.toString());
+        }
+        JDBCEntityManager handler = (JDBCEntityManager)_handler;
 
+        List<T> newList = new ArrayList<>();
+
+        String statementName = cl.getSimpleName() + fieldname;
+
+        Statement st = null;
+
+        try
+        {
+            st = handler.getConnection().createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.CLOSE_CURSORS_AT_COMMIT);
+            
+            String qry = handler.buildSelectString(cl, "T1." + fieldname + "=" + ownerIdx, "order by T1.idx asc", true, "Missing");
+
+            rs = st.executeQuery(qry);
+            // READ LIST ENTRIES
+            while (rs.next())
+            {
+                long l2 = rs.getLong("idx");
+                String key = handler.makeKeyFromStr( l2, cl.getSimpleName() );
+
+                // TRY TO GET OBJECT FROM CACHE
+                ConcurrentCache c = handler.getCache(JDBCEntityManager.OBJECT_CACHE);
+                T obj = null;
+                Element cacheElem = c.get(key);
+                if (cacheElem != null)
+                {
+                    handler.incHitCount();
+                    obj = (T)cacheElem.getValue();
+                }
+
+                // NOT FOUND, GET FROM DB
+                if (obj == null)
+                {
+                    handler.incMissCount();
+                    obj = handler.createObject(rs, cl);
+
+                    if (obj == null)
+                    {
+                        throw new IOException( "Cannot resolve Object " + key );
+                    }
+                    Element el = new Element(key, obj);
+                    c.put(el);
+                }
+
+                if (obj == null)
+                    LogManager.err_db("Obj is null");
+                
+                newList.add(obj);
+            }
+        }
+        catch (Exception sQLException)
+        {
+            LogManager.err_db("Error resolving LayzyList for " + statementName + ownerIdx , sQLException);            
+        }
+        finally
+        {
+            try
+            {
+                if (rs != null)
+                {
+                    rs.close();
+                }
+                if (st != null)
+                {
+                    st.close();
+                }
+            }
+            catch (SQLException sQLException)
+            {
+            }            
+        }
+        return newList;
+    }
+
+    
+    
+    private List<T> realizeWithPS(GenericEntityManager _handler)
+    {
+        
         ResultSet rs = null;
         if (!(_handler instanceof JDBCEntityManager))
         {
