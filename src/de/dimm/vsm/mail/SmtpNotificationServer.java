@@ -124,7 +124,7 @@ public class SmtpNotificationServer extends NotificationServer
             return;
         
         try
-        {
+        {            
             rawFireNotification(n, group, extraText, vr);            
         }
         catch (Exception messagingException)
@@ -195,6 +195,8 @@ public class SmtpNotificationServer extends NotificationServer
         String mailText = DefaultVariableResolver.resolveVariableText( n.getText(vr) );
         mailText += "\n" + extraText;
 
+        LogManager.msg_system(LogManager.LVL_DEBUG, DefaultTextProvider.Txt("Sende Notification") + 
+                        " " +  n.getKey() + ": " + group.getSmtpdata().getServerip() + ": " + subject + ": " + mailText);    
 
         msg.setSubject(subject);
 

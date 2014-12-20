@@ -19,7 +19,9 @@ import org.catacombae.jfuse.util.Log;
  */
 public class PsMaker {
 
-    public final static String[] PS = {
+    public final static String[] PS = {};
+
+    public final static String[] _PS = {
         "select max(idx) from MessageLog, [",
         "insert into MESSAGELOG (idx,creation,errLevel,userId,moduleName,messageId,additionText,exceptionName,exceptionText,exceptionStack) values (?,?,?,?,?,?,?,?,?,?), [",
         "select T1.idx,T1.typ,T1.filesystem_type,T1.pool_idx,T1.parent_idx,T2.idx,T2.name,T2.creationDateMs,T2.modificationDateMs,T2.accessDateMs,T2.deleted,T2.ts,T2.posixMode,T2.fsize,T2.xasize,T2.uid,T2.gid,T2.uidName,T2.gidName,T2.xattribute,T2.aclinfo,T2.file_idx,T2.flags,T1.flags from FILESYSTEMELEMNODE T1,FILESYSTEMELEMATTRIBUTES T2 where T1.attributes_idx=T2.idx and T1.idx=?, [idx",
@@ -215,15 +217,15 @@ public class PsMaker {
             if (!skipMsg)
             {
                 
-                Log.warning("PreparedStatement " + key);
+                Log.debug("PreparedStatement " + key);
                 
                 // THIS SEEMST TO HELP AGAINST SPURIOUS EXCEPTIONS DURING RUNTIME
-                try {
+               /* try {
                     Thread.sleep(1000);
                 }
                 catch (InterruptedException ex) {
                     LogManager.err_db("Fehler bei getPs", ex);      
-                }
+                }*/
             }
         }
         return st;
@@ -242,5 +244,17 @@ public class PsMaker {
             return val.intValue();
         
         return MAX_ID_PS_CNT;
+    }
+    
+    public void close() {
+        
+        for (PreparedStatement ps: stMap.values()) {
+            try {
+                ps.close();
+            }
+            catch (SQLException sQLException) {
+            }
+        }
+        
     }
 }

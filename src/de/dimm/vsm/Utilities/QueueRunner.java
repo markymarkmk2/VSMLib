@@ -153,7 +153,7 @@ public class QueueRunner
             {
                 Thread.sleep(100);
                 long now = System.currentTimeMillis();
-                if (now - start > 60*1000)
+                if (now - start > 240*1000)
                 {
                     LogManager.msg_system(LogManager.LVL_ERR, "QueueRunner Timeout on flush");
                     break;

@@ -187,8 +187,7 @@ public class JDBCEntityManager implements GenericEntityManager
     {
         this.poolIdx = poolIdx;
         if (poolIdx > 0)
-            initPs();
-        
+            initPs();        
     }
 
     public JDBCConnectionFactory getConnFactory() {
@@ -265,8 +264,6 @@ public class JDBCEntityManager implements GenericEntityManager
             stDelHashBlock = getConnection().prepareStatement("delete from HashBlock where fileNode_idx=?");
         if (stDelXANode == null)
             stDelXANode = getConnection().prepareStatement("delete from XANode where fileNode_idx=?");
-//        if (stSelChildren == null)
-//            stSelChildren = getConnection().prepareStatement("select idx from FileSystemElemNode where parent_idx=?");
         if (stDelNode == null)
             stDelNode = getConnection().prepareStatement("delete from FileSystemElemNode where idx=?");   
         
@@ -280,6 +277,70 @@ public class JDBCEntityManager implements GenericEntityManager
 //        }
 //        poolManager = initializeJDBCPool(emf, null);
 //    }
+
+    boolean wasClosed = false;
+    @Override
+    public void close_entitymanager()
+    {
+        try {
+            if (stDelPoolNodeFileLink == null) {
+                stDelPoolNodeFileLink.close();
+            }
+            if (stDelFileSystemElemAttributes == null) {
+                stDelFileSystemElemAttributes.close();
+            }
+            if (stDelHashBlock == null) {
+                stDelHashBlock.close();
+            }
+            if (stDelXANode == null) {
+                stDelXANode.close();
+            }
+            if (stDelNode == null) {
+                stDelNode.close();
+            }
+        }
+        catch (SQLException sQLException) {
+        }
+        
+        psMaker.close();
+        
+        if (wasClosed)
+        {
+            LogManager.msg_db(LogManager.LVL_WARN, "Closing already closed connection " + this.toString() );
+        }
+
+        if (jdbcConnection == null)
+            return;
+
+        //LogManager.msg_db(LogManager.LVL_INFO, "Closing connection " + this.toString() );
+        try
+        {
+            jdbcConnection.commit();
+            if (tx != null)
+                openCommits--;
+        }
+        catch (SQLException ex)
+        {
+            LogManager.msg_db(LogManager.LVL_ERR, "Committing closing connection failed" + ex.getMessage() );
+        }
+        try
+        {            
+            jdbcConnection.close();
+            jdbcConnection = null;
+        }
+        catch (SQLException ex)
+        {
+            LogManager.msg_db(LogManager.LVL_ERR, "Closing connection failed" + ex.getMessage() );
+        }
+        linkStatementMap.clear();        
+        linkSelectPSMap.clear();
+        selectPSMap.clear();
+        insertStatementMap.clear();
+        newIndexStatementMap.clear();
+        deleteStatementMap.clear();
+        updateStatementMap.clear();
+        wasClosed = true;
+    }
 
 
     public static MiniConnectionPoolManager initializeJDBCPool(EntityManagerFactory emf, String jdbcUrl) throws IOException
@@ -573,48 +634,6 @@ public class JDBCEntityManager implements GenericEntityManager
         }
     }
 
-
-    boolean wasClosed = false;
-    @Override
-    public void close_entitymanager()
-    {
-        if (wasClosed)
-        {
-            LogManager.msg_db(LogManager.LVL_WARN, "Closing already closed connection " + this.toString() );
-        }
-
-        if (jdbcConnection == null)
-            return;
-
-        //LogManager.msg_db(LogManager.LVL_INFO, "Closing connection " + this.toString() );
-        try
-        {
-            jdbcConnection.commit();
-            if (tx != null)
-                openCommits--;
-        }
-        catch (SQLException ex)
-        {
-            LogManager.msg_db(LogManager.LVL_ERR, "Committing closing connection failed" + ex.getMessage() );
-        }
-        try
-        {            
-            jdbcConnection.close();
-            jdbcConnection = null;
-        }
-        catch (SQLException ex)
-        {
-            LogManager.msg_db(LogManager.LVL_ERR, "Closing connection failed" + ex.getMessage() );
-        }
-        linkStatementMap.clear();        
-        linkSelectPSMap.clear();
-        selectPSMap.clear();
-        insertStatementMap.clear();
-        newIndexStatementMap.clear();
-        deleteStatementMap.clear();
-        updateStatementMap.clear();
-        wasClosed = true;
-    }
 
     
     @Override

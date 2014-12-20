@@ -16,6 +16,7 @@ public interface TaskInterface
 
     public enum TASKSTATE
     {
+        STARTED,
         RUNNING,
         SLEEPING,
         WAITING,

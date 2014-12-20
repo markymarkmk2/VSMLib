@@ -105,12 +105,14 @@ public class JDBCLazyList<T> extends LazyList
                     }
                     Element el = new Element(key, obj);
                     c.put(el);
-                }
-
-                if (obj == null)
-                    LogManager.err_db("Obj is null");
+                }                   
                 
                 newList.add(obj);
+                
+                boolean doOOM = false;
+                if (doOOM) {
+                    throw new OutOfMemoryError("TestTest");
+                }
             }
         }
         catch (Exception sQLException)
@@ -132,6 +134,7 @@ public class JDBCLazyList<T> extends LazyList
             }
             catch (SQLException sQLException)
             {
+                LogManager.err_db("Error closing LayzyList" + statementName + ownerIdx , sQLException);    
             }            
         }
         return newList;

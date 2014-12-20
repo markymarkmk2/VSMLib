@@ -82,7 +82,7 @@ public class StoragePoolQry implements Serializable
     public static StoragePoolQry createSearchlistStoragePoolQry(User user,  ArrayList<SearchEntry> slist)
     {
         StoragePoolQry qry =  new StoragePoolQry( user, slist);
-        
+        qry.setShowVersions(true); 
         return qry;
     }
     

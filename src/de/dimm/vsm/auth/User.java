@@ -628,8 +628,8 @@ public class User implements Serializable
         String[] arr = s.split("\n");
         for (int i = 0; i < arr.length; i++)
         {
-            String string = arr[i];
-            if (string.trim().isEmpty())
+            String string = arr[i].trim().toLowerCase();
+            if (string.isEmpty())
             {
                 continue;
             }
@@ -646,11 +646,11 @@ public class User implements Serializable
                 LogManager.msg_auth(LogManager.LVL_ERR, "Ungültiger Eintrag in GroupMapping, zu wenige Argumente: "  + string );            
                 continue;
             }
-            String type =  entry[0].trim().toLowerCase();
+            String type =  entry[0].trim();
             String entity =  entry[1].trim();
-            String action = entry[2].trim().toLowerCase();
-            String argsType = entry[3].trim().toLowerCase();
-            String argsArr = entry[4];
+            String action = entry[2].trim();
+            String argsType = entry[3].trim();
+            String argsArr = entry[4].trim();
             String[] args = argsArr.split(",");
             if (args.length < 1) {
                 LogManager.msg_auth(LogManager.LVL_ERR, "Ungültiger Eintrag in GroupMapping, zu wenige Werte: "  + string );            
@@ -660,7 +660,7 @@ public class User implements Serializable
             // Not for us
             if (!entity.equals("*")) {
                 if (type.equals("user")) {
-                    if (!userName.equalsIgnoreCase(entity)) {
+                    if (!loginName.equalsIgnoreCase(entity)) {
                         continue;
                     }                    
                 }
