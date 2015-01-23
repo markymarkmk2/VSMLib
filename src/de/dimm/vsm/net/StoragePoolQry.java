@@ -83,6 +83,7 @@ public class StoragePoolQry implements Serializable
     {
         StoragePoolQry qry =  new StoragePoolQry( user, slist);
         qry.setShowVersions(true); 
+        qry.showDeleted = true; 
         return qry;
     }
     

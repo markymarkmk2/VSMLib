@@ -5,9 +5,12 @@
 package de.dimm.vsm.net;
 
 import de.dimm.vsm.hash.StringUtils;
+import de.dimm.vsm.log.LogManager;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**
@@ -16,6 +19,8 @@ import java.net.UnknownHostException;
  */
 public class IpResolver
 {
+    private static Map<String,String>ipMap = new HashMap<>();
+    
     public static boolean isValidIp(String ip)
     {
         if (StringUtils.isEmpty(ip))
@@ -49,16 +54,28 @@ public class IpResolver
     
     public static String resolveIp(String ip )
     {
-        try
-        {
-            InetAddress adr = InetAddress.getByName(ip);
-            return adr.getHostName();
+        String name = ipMap.get( ip );
+        if (name == null) {
+            try
+            {
+                long start = System.currentTimeMillis();
+                
+                InetAddress adr = InetAddress.getByName(ip);
+                name = adr.getHostName();
+                long end = System.currentTimeMillis();                
+                LogManager.msg_db(LogManager.LVL_DEBUG, "Nameresolving of " + ip + "(" + name + ") took " + Long.toString(end -start) + "  ms");
+            }
+            catch (UnknownHostException unknownHostException)
+            {
+                LogManager.msg_db(LogManager.LVL_ERR, "Nameresolving of " + ip + "(" + name + ") failed: " + unknownHostException.getMessage());
+                name = ip;
+            }
         }
-        catch (UnknownHostException unknownHostException)
-        {
-            
-        }
-        return ip;        
+        ipMap.put( ip, name );
+        return name;        
     }
     
+    public static void resetCache() {
+        ipMap.clear();
+    }    
 }

@@ -114,6 +114,7 @@ class FieldEntry
 public class JDBCEntityManager implements GenericEntityManager
 {
     public static int MAX_CONNECTIONS = 100;
+    public static int MAX_COMMIT_TIMEOUT = 1000;
 
     //static MiniConnectionPoolManager poolManager = null;
 
@@ -162,7 +163,8 @@ public class JDBCEntityManager implements GenericEntityManager
 
     private Connection jdbcConnection;
     JDBCConnectionFactory connFactory;
-    
+    long lastCommitTs = 0;
+
     PsMaker psMaker;
     
     XStream xStream = new XStream(); 
@@ -249,7 +251,7 @@ public class JDBCEntityManager implements GenericEntityManager
         fieldMap = new HashMap<>();  
         
         psMaker = new PsMaker();
-        
+                
         setPoolIdx(idx);
                
     }
@@ -269,33 +271,26 @@ public class JDBCEntityManager implements GenericEntityManager
         
         psMaker.createPoolPs(getConnection());
     }
-//    public static void initializeJDBCPool(EntityManagerFactory emf) throws IOException
-//    {
-//        if (poolManager != null)
-//        {
-//            return;
-//        }
-//        poolManager = initializeJDBCPool(emf, null);
-//    }
+
 
     boolean wasClosed = false;
     @Override
     public void close_entitymanager()
     {
         try {
-            if (stDelPoolNodeFileLink == null) {
+            if (stDelPoolNodeFileLink != null) {
                 stDelPoolNodeFileLink.close();
             }
-            if (stDelFileSystemElemAttributes == null) {
+            if (stDelFileSystemElemAttributes != null) {
                 stDelFileSystemElemAttributes.close();
             }
-            if (stDelHashBlock == null) {
+            if (stDelHashBlock != null) {
                 stDelHashBlock.close();
             }
-            if (stDelXANode == null) {
+            if (stDelXANode != null) {
                 stDelXANode.close();
             }
-            if (stDelNode == null) {
+            if (stDelNode != null) {
                 stDelNode.close();
             }
         }
@@ -607,10 +602,15 @@ public class JDBCEntityManager implements GenericEntityManager
     public void check_commit_transaction() throws SQLException
     {
         statemenCnt++;
+        long now= System.currentTimeMillis();
+        if (now - lastCommitTs > MAX_COMMIT_TIMEOUT) {
+            statemenCnt = MAX_OPEN_STATEMENTS + 1;
+        }
         if (immediateCommit || statemenCnt > MAX_OPEN_STATEMENTS)
         {
             commit_transaction();
-        }
+            lastCommitTs = now;
+        }        
     }
 
    

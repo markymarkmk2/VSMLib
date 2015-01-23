@@ -50,8 +50,10 @@ public class JDBCLazyList<T> extends LazyList
             {
                 return realList;
             }
+            realList = realizeWithSt( _handler);
         }
-        return realizeWithSt( _handler);
+        
+        return realList;
     }
     
     private List<T> realizeWithSt(GenericEntityManager _handler)
