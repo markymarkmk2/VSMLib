@@ -139,7 +139,7 @@ public class NetServer
         server.addConnector(http);                
     }
 
-    public void start_server(int port, boolean ssl,  String keystore, String keypwd) throws Exception
+    public boolean start_server(int port, boolean ssl,  String keystore, String keypwd) throws IOException
     {
         // Setup Threadpool
         QueuedThreadPool threadPool = new QueuedThreadPool();
@@ -175,15 +175,16 @@ public class NetServer
 
         jetty_server.setHandler(context);
         
-
         try
         {
             jetty_server.start();
+            return true;
         }
         catch (Exception exception)
         {
             exception.printStackTrace();
         }
+        return false;
     }
 
 
@@ -224,5 +225,9 @@ public class NetServer
     {
         context.addServlet(servletHolder, "/" + web_context);
     }
+    
+    public ServletContextHandler getContext() {
+        return context;
+    }    
 
 }

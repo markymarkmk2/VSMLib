@@ -57,7 +57,7 @@ public class DemoLicenseTicket extends LicenseTicket
         return now.before(expires);
     }
     @Override
-    String get_license_hash_str()
+    protected String get_license_hash_str()
     {
         return super.get_license_hash_str() + "," + expires.getTime();
     }

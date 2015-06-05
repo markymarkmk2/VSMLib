@@ -7,7 +7,6 @@ package de.dimm.vsm.license;
 
 import de.dimm.vsm.log.LogListener;
 import java.io.IOException;
-import java.util.ArrayList;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.bouncycastle.util.encoders.Base64;
@@ -134,7 +133,7 @@ public abstract class LicenseTicket
 
 
     // USED FOR HASH CREATION
-    String get_license_hash_str()
+    protected String get_license_hash_str()
     {
         return product + "," +modules + "," + type + "," + units + "," + serial;
     }

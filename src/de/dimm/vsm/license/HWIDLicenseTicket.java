@@ -141,6 +141,12 @@ public class HWIDLicenseTicket extends LicenseTicket
         }
     }
 
+    @Override
+    protected String get_license_hash_str()
+    {
+        return super.get_license_hash_str() + "," + hwid;
+    }
+    
     static String read_virtual_hw_lic_file()
     {
         File lic_file = new File(VM_LICFILE);
@@ -225,11 +231,6 @@ public class HWIDLicenseTicket extends LicenseTicket
         return false;
     }
 
-    @Override
-    String get_license_hash_str()
-    {
-        return super.get_license_hash_str() + "," +hwid;
-    }
     @Override
     public String toString()
     {

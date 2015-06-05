@@ -17,6 +17,7 @@ import de.dimm.vsm.net.SearchStatus;
 import de.dimm.vsm.net.SearchWrapper;
 import de.dimm.vsm.net.StoragePoolQry;
 import de.dimm.vsm.net.StoragePoolWrapper;
+import de.dimm.vsm.preview.IPreviewData;
 import de.dimm.vsm.records.AbstractStorageNode;
 import de.dimm.vsm.records.ArchiveJob;
 import de.dimm.vsm.records.FileSystemElemNode;
@@ -61,7 +62,7 @@ public interface GuiServerApi extends UIRecoveryApi
 
     StoragePoolWrapper openPoolView( StoragePool pool, StoragePoolQry qry, String subPath );
     StoragePoolWrapper openPoolView( StoragePool pool, StoragePoolQry qry, FileSystemElemNode node );
-    List<RemoteFSElem> listDir( StoragePoolWrapper wrapper, RemoteFSElem path ) throws SQLException;
+    List<RemoteFSElem> listDir( IWrapper wrapper, RemoteFSElem path ) throws SQLException;
     void closePoolView( StoragePoolWrapper wrapper );
     boolean removeFSElem( IWrapper wrapper, RemoteFSElem path ) throws SQLException, PoolReadOnlyException;
     boolean undeleteFSElem( IWrapper wrapper, RemoteFSElem path ) throws SQLException, PoolReadOnlyException;
@@ -138,4 +139,9 @@ public interface GuiServerApi extends UIRecoveryApi
     
     List<RemoteFSElem> listVersions( IWrapper wrapper, RemoteFSElem path ) throws SQLException, IOException;
     
+    List<IPreviewData> getPreviewData( IWrapper wrapper, List<RemoteFSElem> path ) throws SQLException, IOException;
+    
+    public int createWebDavServer( StoragePoolWrapper wrapper )throws IOException,  PoolReadOnlyException, PathResolveException;
+    public int createWebDavSearchServer( SearchWrapper wrapper )throws IOException,  PoolReadOnlyException, PathResolveException;
+
 }

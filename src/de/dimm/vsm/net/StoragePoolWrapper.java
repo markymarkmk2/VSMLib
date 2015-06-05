@@ -16,7 +16,7 @@ import java.io.Serializable;
  */
 public class StoragePoolWrapper implements Serializable, IWrapper
 {
-    long idx;
+    private long idx;
     long poolIdx;
     StoragePoolQry qry;
     boolean physicallyMounted;

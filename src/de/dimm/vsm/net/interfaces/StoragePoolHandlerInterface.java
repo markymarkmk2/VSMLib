@@ -23,84 +23,84 @@ public interface StoragePoolHandlerInterface {
 
     String getVersion();
 
-    RemoteFSElem create_fse_node( StoragePoolWrapper pool, String fileName, String type ) throws IOException, PoolReadOnlyException, PathResolveException;
+    RemoteFSElem create_fse_node( IWrapper pool, String fileName, String type ) throws IOException, PoolReadOnlyException, PathResolveException;
 
-    RemoteFSElem resolve_node( StoragePoolWrapper pool, String path ) throws SQLException;
+    RemoteFSElem resolve_node( IWrapper pool, String path ) throws SQLException;
 
-    long getTotalBlocks(StoragePoolWrapper pool );
+    long getTotalBlocks(IWrapper pool );
 
-    long getUsedBlocks(StoragePoolWrapper pool );
+    long getUsedBlocks(IWrapper pool );
 
-    int getBlockSize(StoragePoolWrapper pool );
+    int getBlockSize(IWrapper pool );
 
-    void mkdir( StoragePoolWrapper pool, String pathName ) throws IOException, PoolReadOnlyException, PathResolveException;
+    void mkdir( IWrapper pool, String pathName ) throws IOException, PoolReadOnlyException, PathResolveException;
 
-    public long open_fh( StoragePoolWrapper pool, long nodeIdx, boolean forWrite ) throws IOException, PoolReadOnlyException, SQLException, PathResolveException;
-    public long open_stream( StoragePoolWrapper pool, long nodeIdx, boolean forWrite ) throws IOException, PoolReadOnlyException, SQLException, PathResolveException;
+    public long open_fh( IWrapper pool, long nodeIdx, boolean forWrite ) throws IOException, PoolReadOnlyException, SQLException, PathResolveException;
+    public long open_stream( IWrapper pool, long nodeIdx, boolean forWrite ) throws IOException, PoolReadOnlyException, SQLException, PathResolveException;
     
     long create_fh( StoragePoolWrapper pool, String vsmPath, String type) throws IOException, PoolReadOnlyException, SQLException, PathResolveException;
     long create_stream( StoragePoolWrapper pool, String vsmPath, String type, int streamInfo) throws IOException, PoolReadOnlyException, SQLException, PathResolveException;
 
-    String getName(StoragePoolWrapper pool);
+    String getName(IWrapper pool);
 
-    boolean delete_fse_node_path( StoragePoolWrapper pool, String path ) throws IOException, PoolReadOnlyException, SQLException;
+    boolean delete_fse_node_path( IWrapper pool, String path ) throws IOException, PoolReadOnlyException, SQLException;
     
-    boolean delete_fse_node_idx( StoragePoolWrapper pool, long idx ) throws IOException, PoolReadOnlyException, SQLException;
+    boolean delete_fse_node_idx( IWrapper pool, long idx ) throws IOException, PoolReadOnlyException, SQLException;
 
-    List<RemoteFSElem> get_child_nodes( StoragePoolWrapper pool, RemoteFSElem handler ) throws SQLException;
+    List<RemoteFSElem> get_child_nodes( IWrapper pool, RemoteFSElem handler ) throws SQLException;
 
-    void move_fse_node( StoragePoolWrapper pool, String from, String to ) throws IOException, SQLException, PoolReadOnlyException, PathResolveException;
-    void move_fse_node_idx( StoragePoolWrapper pool, long idx, String to ) throws IOException, SQLException, PoolReadOnlyException, PathResolveException;
+    void move_fse_node( IWrapper pool, String from, String to ) throws IOException, SQLException, PoolReadOnlyException, PathResolveException;
+    void move_fse_node_idx( IWrapper pool, long idx, String to ) throws IOException, SQLException, PoolReadOnlyException, PathResolveException;
 
-    public void set_ms_times( StoragePoolWrapper pool, long idx, long toJavaTime, long toJavaTime0, long toJavaTime1 ) throws IOException, SQLException, PoolReadOnlyException;
+    public void set_ms_times( IWrapper pool, long idx, long toJavaTime, long toJavaTime0, long toJavaTime1 ) throws IOException, SQLException, PoolReadOnlyException;
 
-    public boolean exists( StoragePoolWrapper pool, RemoteFSElem fseNode ) throws IOException;
+    public boolean exists( IWrapper pool, RemoteFSElem fseNode ) throws IOException;
 
-    public boolean isReadOnly( StoragePoolWrapper pool, long idx ) throws IOException, SQLException;
+    public boolean isReadOnly( IWrapper pool, long idx ) throws IOException, SQLException;
 
-    public void force( StoragePoolWrapper pool, long idx, boolean b ) throws IOException;
+    public void force( IWrapper pool, long idx, boolean b ) throws IOException;
 
-    public byte[] read( StoragePoolWrapper pool, long idx, int length, long offset ) throws IOException;
+    public byte[] read( IWrapper pool, long idx, int length, long offset ) throws IOException;
 
-    public void create( StoragePoolWrapper pool, long idx ) throws IOException, PoolReadOnlyException;
+    public void create( IWrapper pool, long idx ) throws IOException, PoolReadOnlyException;
 
-    public void truncateFile( StoragePoolWrapper pool, long idx, long size ) throws IOException, SQLException, PoolReadOnlyException;
+    public void truncateFile( IWrapper pool, long idx, long size ) throws IOException, SQLException, PoolReadOnlyException;
 
-    public void close_fh( StoragePoolWrapper pool, long idx ) throws IOException;
+    public void close_fh( IWrapper pool, long idx ) throws IOException;
 
-    public void writeFile ( StoragePoolWrapper pool, long idx, byte[] data, int length, long offset ) throws IOException, SQLException, PoolReadOnlyException;
-    public void writeBlock( StoragePoolWrapper pool, long idx, String hash, byte[] b, int length, long offset ) throws IOException, SQLException, PoolReadOnlyException, PathResolveException;
-    public boolean checkBlock( StoragePoolWrapper pool, String hash ) throws IOException, SQLException;
+    public void writeFile ( IWrapper pool, long idx, byte[] data, int length, long offset ) throws IOException, SQLException, PoolReadOnlyException;
+    public void writeBlock( IWrapper pool, long idx, String hash, byte[] b, int length, long offset ) throws IOException, SQLException, PoolReadOnlyException, PathResolveException;
+    public boolean checkBlock( IWrapper pool, String hash ) throws IOException, SQLException;
 
-    void set_attribute( StoragePoolWrapper pool, RemoteFSElem fseNode, String string, Integer valueOf ) throws IOException, SQLException, PoolReadOnlyException;
+    void set_attribute( IWrapper pool, RemoteFSElem fseNode, String string, Integer valueOf ) throws IOException, SQLException, PoolReadOnlyException;
 
-    String read_symlink( StoragePoolWrapper pool, RemoteFSElem fseNode );
+    String read_symlink( IWrapper pool, RemoteFSElem fseNode );
 
-    void create_symlink( StoragePoolWrapper pool, RemoteFSElem fseNode, String to ) throws IOException, PoolReadOnlyException;
+    void create_symlink( IWrapper pool, RemoteFSElem fseNode, String to ) throws IOException, PoolReadOnlyException;
 
-    void truncate( StoragePoolWrapper pool, RemoteFSElem fseNode, long size ) throws IOException, PoolReadOnlyException;
+    void truncate( IWrapper pool, RemoteFSElem fseNode, long size ) throws IOException, PoolReadOnlyException;
 
-    void set_last_modified( StoragePoolWrapper pool, RemoteFSElem fseNode, long l ) throws IOException, SQLException, PoolReadOnlyException;
-    void set_ms_filetimes( StoragePoolWrapper pool, RemoteFSElem fseNode, long ctime , long atime , long mtime ) throws IOException, SQLException, PoolReadOnlyException;
+    void set_last_modified( IWrapper pool, RemoteFSElem fseNode, long l ) throws IOException, SQLException, PoolReadOnlyException;
+    void set_ms_filetimes( IWrapper pool, RemoteFSElem fseNode, long ctime , long atime , long mtime ) throws IOException, SQLException, PoolReadOnlyException;
 
-    String get_xattribute( StoragePoolWrapper pool, RemoteFSElem fseNode, String name ) throws SQLException ;
+    String get_xattribute( IWrapper pool, RemoteFSElem fseNode, String name ) throws SQLException ;
 
-    void set_last_accessed( StoragePoolWrapper pool, RemoteFSElem fseNode, long l ) throws IOException, SQLException, PoolReadOnlyException;
+    void set_last_accessed( IWrapper pool, RemoteFSElem fseNode, long l ) throws IOException, SQLException, PoolReadOnlyException;
 
-    List<String> list_xattributes( StoragePoolWrapper pool, RemoteFSElem fseNode );
+    List<String> list_xattributes( IWrapper pool, RemoteFSElem fseNode );
 
-    void add_xattribute( StoragePoolWrapper pool, RemoteFSElem fseNode, String name, String valStr );
+    void add_xattribute( IWrapper pool, RemoteFSElem fseNode, String name, String valStr );
 
-    void set_mode( StoragePoolWrapper pool, RemoteFSElem fseNode, int mode ) throws IOException, SQLException, PoolReadOnlyException;
+    void set_mode( IWrapper pool, RemoteFSElem fseNode, int mode ) throws IOException, SQLException, PoolReadOnlyException;
 
-    void set_owner_id( StoragePoolWrapper pool, RemoteFSElem fseNode, int uid ) throws IOException, SQLException, PoolReadOnlyException;
+    void set_owner_id( IWrapper pool, RemoteFSElem fseNode, int uid ) throws IOException, SQLException, PoolReadOnlyException;
 
-    void set_group_id( StoragePoolWrapper pool, RemoteFSElem fseNode, int gid ) throws IOException, SQLException, PoolReadOnlyException;
+    void set_group_id( IWrapper pool, RemoteFSElem fseNode, int gid ) throws IOException, SQLException, PoolReadOnlyException;
 
-     boolean isReadOnly(StoragePoolWrapper pool);
+     boolean isReadOnly(IWrapper pool);
 
-    public long length( StoragePoolWrapper poolWrapper, long idx );
+    public long length( IWrapper poolWrapper, long idx );
 
-    public void updateAttributes( StoragePoolWrapper poolWrapper, long fileNo, RemoteFSElem elem )throws IOException, SQLException, PoolReadOnlyException;
+    public void updateAttributes( IWrapper poolWrapper, long fileNo, RemoteFSElem elem )throws IOException, SQLException, PoolReadOnlyException;
 
 }
