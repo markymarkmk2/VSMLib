@@ -20,5 +20,6 @@ public interface IWrapper
     public long getTs();
 
     public boolean isReadOnly();
+    public String getWebDavToken();
 
 }

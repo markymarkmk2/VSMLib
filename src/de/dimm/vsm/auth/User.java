@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  *
@@ -51,6 +52,13 @@ public class User implements Serializable
     boolean skipPosixIntrinsicAcl = false;
     
     //Todo: Sichtbarkeit Default für Dateien ohne ACL j/n -> @EVERYONE abschalten
+    
+    String loginToken;
+
+    public String getLoginToken() {
+        return loginToken;
+    }
+    
     
 
     public boolean isAllowed( String principalName )
@@ -370,6 +378,8 @@ public class User implements Serializable
         groups = new HashMap<>();
         
         fsMapper = new VsmFsMapper();
+        
+        loginToken = UUID.randomUUID().toString();
     }
 
     public void setGroups( List<String> groups, List<Integer> gids )

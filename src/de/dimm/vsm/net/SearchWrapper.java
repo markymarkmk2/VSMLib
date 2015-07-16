@@ -18,6 +18,7 @@ public class SearchWrapper  implements Serializable, IWrapper
     long poolIdx;
 
     StoragePoolQry qry;
+    String webDavToken;
 
     SearchWrapper( long newIdx, long idx, StoragePoolQry qry )
     {
@@ -73,6 +74,14 @@ public class SearchWrapper  implements Serializable, IWrapper
         int hash = 3;
         hash = 17 * hash + (int) (this.wrapperIdx ^ (this.wrapperIdx >>> 32));
         return hash;
+    }
+    @Override
+    public String getWebDavToken() {
+        return webDavToken;
+    }
+
+    public void setWebDavToken( String webDavToken ) {
+        this.webDavToken = webDavToken;
     }
 
 

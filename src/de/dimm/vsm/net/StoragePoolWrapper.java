@@ -27,6 +27,8 @@ public class StoragePoolWrapper implements Serializable, IWrapper
 
     String agentIp;
     int port;
+    
+    String webDavToken;
 
 //    public StoragePoolWrapper()
 //    {
@@ -174,8 +176,15 @@ public class StoragePoolWrapper implements Serializable, IWrapper
     {
         return agentIp;
     }
-    
 
-    
+    @Override
+    public String getWebDavToken() {
+        return webDavToken;
+    }
 
+    public void setWebDavToken( String webDavToken ) {
+        this.webDavToken = webDavToken;
+    }
+    
+    
 }

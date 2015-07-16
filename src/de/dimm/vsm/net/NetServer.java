@@ -7,6 +7,7 @@ package de.dimm.vsm.net;
 
 import com.caucho.hessian.server.HessianServlet;
 import de.dimm.vsm.Utilities.DefaultSSLSocketFactory;
+import de.dimm.vsm.log.LogManager;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -182,7 +183,7 @@ public class NetServer
         }
         catch (Exception exception)
         {
-            exception.printStackTrace();
+            LogManager.msg_system(LogManager.LVL_ERR, "Start Server failed", exception );
         }
         return false;
     }
@@ -198,7 +199,7 @@ public class NetServer
         }
         catch (Exception exception)
         {
-            exception.printStackTrace();
+            LogManager.msg_system(LogManager.LVL_ERR, "Stop Server failed", exception );
         }
     }
 
@@ -210,7 +211,7 @@ public class NetServer
         }
         catch (Exception exception)
         {
-            exception.printStackTrace();
+             LogManager.msg_system(LogManager.LVL_ERR, "Join Server failed", exception );
         }
     }
 
