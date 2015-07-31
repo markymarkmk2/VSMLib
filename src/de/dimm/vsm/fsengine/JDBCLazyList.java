@@ -72,16 +72,17 @@ public class JDBCLazyList<T> extends LazyList
 
         Statement st = null;
 
+        synchronized(handler) {
         try
         {
-            st = handler.getConnection().createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.CLOSE_CURSORS_AT_COMMIT);
+            st = handler.getConnection().createStatement(/*ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.CLOSE_CURSORS_AT_COMMIT*/);
             
             String qry = handler.buildSelectString(cl, "T1." + fieldname + "=" + ownerIdx, "order by T1.idx asc", true, "Missing");
 
             rs = st.executeQuery(qry);
             // READ LIST ENTRIES
             while (rs.next())
-            {
+            {             
                 long l2 = rs.getLong("idx");
                 String key = handler.makeKeyFromStr( l2, cl.getSimpleName() );
 
@@ -127,20 +128,24 @@ public class JDBCLazyList<T> extends LazyList
             {
                 if (rs != null)
                 {
+                    inClose = true;
                     rs.close();
+                    inClose = false;
                 }
                 if (st != null)
                 {
                     st.close();
                 }
             }
-            catch (SQLException sQLException)
+            catch (Exception sQLException)
             {
                 LogManager.err_db("Error closing LayzyList" + statementName + ownerIdx , sQLException);    
             }            
         }
+        }
         return newList;
     }
+    public static boolean inClose= false;
 
     
     
