@@ -143,6 +143,8 @@ public interface GuiServerApi extends UIRecoveryApi
     List<IPreviewData> getPreviewData( IWrapper wrapper, List<RemoteFSElem> path, Properties props ) throws SQLException, IOException;
     
     public int createWebDavServer( StoragePoolWrapper wrapper )throws IOException,  PoolReadOnlyException, PathResolveException;
-    public int createWebDavSearchServer( SearchWrapper wrapper )throws IOException,  PoolReadOnlyException, PathResolveException;
+    public int createWebDavSearchServer( SearchWrapper wrapper ) throws IOException, PoolReadOnlyException, PathResolveException;
+
+    public boolean fixDoubleDir( IWrapper wrapper, RemoteFSElem path ) throws SQLException, IOException;
 
 }
