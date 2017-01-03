@@ -12,7 +12,10 @@ import com.caucho.hessian.client.HessianProxyFactory;
 import com.caucho.hessian.io.Deserializer;
 import com.caucho.hessian.io.HessianProtocolException;
 import com.caucho.hessian.io.InputStreamDeserializer;
+import com.caucho.hessian.io.Serializer;
 import com.caucho.hessian.io.SerializerFactory;
+import de.dimm.vsm.hessian.InetAddressDeserializer;
+import de.dimm.vsm.hessian.InetAddressSerializer;
 import de.dimm.vsm.net.interfaces.SocketOwner;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -249,13 +252,24 @@ public class RemoteCallFactory implements SocketOwner
             @Override
             protected Deserializer loadDeserializer( Class cl ) throws HessianProtocolException
             {
-                if (InputStream.class.isAssignableFrom(cl))
-                {
+                if (InputStream.class.isAssignableFrom(cl)) {
                     return new InputStreamDeserializer();
                 }
-                else
-                {
+                else if (InetAddress.class.isAssignableFrom(cl)) {
+                    return new InetAddressDeserializer();
+                }
+                else                {
                     return super.loadDeserializer(cl);
+                }
+            }
+
+            @Override
+            protected Serializer loadSerializer( Class cl ) throws HessianProtocolException {
+                if (InetAddress.class.isAssignableFrom(cl)) {
+                    return new InetAddressSerializer();
+                }
+                else {
+                    return super.loadSerializer(cl);
                 }
             }
         });
